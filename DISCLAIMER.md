@@ -11,7 +11,8 @@ anything here conflicts with the license, the license controls.
 
 ## 1. Experimental, unsupported side project
 
-Frontier Browser is an **experimental, personal, unpaid side project**. It is
+Frontier Browser is an **academic, experimental, personal, unpaid side
+project**. It is
 not a product, and it is not offered by a company.
 
 - It is **not actively maintained** and may never be updated again.
@@ -24,7 +25,25 @@ not a product, and it is not offered by a company.
 - Because it may not receive security updates, the web browser engine inside it
   can become **out of date and unsafe** at any time.
 
-## 2. Provided "as is", with no warranty
+## 2. Academic use only; no official builds
+
+Frontier is published **solely as source code, for academic and experimental
+purposes.**
+
+- The project **does not publish, and will not publish, prebuilt installers,
+  binaries, app-store listings, or registry packages** (npm or anything else).
+  Every package in the repository is marked private, and CI is read-only and
+  fails if packaging or publishing is added
+  ([scripts/check-no-distribution.mjs](scripts/check-no-distribution.mjs)).
+- **Any installer or binary of "Frontier Browser" you find is unofficial.** It
+  was made by someone else, may be modified or malicious, and is not endorsed by
+  the authors. The desktop app announces this when it runs as a packaged copy.
+- Because the licence (MPL-2.0) allows redistribution, the authors **cannot
+  prevent** third parties from building and distributing their own copies, and
+  accept **no responsibility** for them. Whoever distributes a build is solely
+  responsible for it (see Section 8).
+
+## 3. Provided "as is", with no warranty
 
 The software is provided **"AS IS" and "AS AVAILABLE", without warranty of any
 kind**, express, implied, or statutory — including any warranty of
@@ -32,7 +51,7 @@ merchantability, fitness for a particular purpose, accuracy, reliability,
 security, availability, non-infringement, or that it will be free of errors or
 harmful components. **You use it entirely at your own risk.**
 
-## 3. No guarantee of legal, regulatory, or accessibility compliance
+## 4. No guarantee of legal, regulatory, or accessibility compliance
 
 The project's documentation discusses laws and standards such as WCAG, EN 301
 549, Section 508, the European Accessibility Act, the ADA, GDPR, CCPA/CPRA, the
@@ -48,7 +67,7 @@ standard.** Items in `docs/COMPLIANCE.md` marked "open" are unresolved.
   are solely responsible for determining whether it is appropriate and lawful
   for your use, and for any compliance obligations that apply to you.
 
-## 4. Not a safety device, assistive-technology replacement, or professional advisor
+## 5. Not a safety device, assistive-technology replacement, or professional advisor
 
 - **Do not rely on Frontier as your only way to access important information
   or services.** Keep your existing screen reader, magnifier, or other
@@ -64,7 +83,7 @@ standard.** Items in `docs/COMPLIANCE.md` marked "open" are unresolved.
 - It is **not a medical device** and is not intended to diagnose, treat,
   mitigate, or compensate for any disability or condition.
 
-## 5. AI output can be wrong
+## 6. AI output can be wrong
 
 If you connect an AI model, its answers, summaries, and actions **may be
 inaccurate, incomplete, outdated, or invented**, even when they sound
@@ -73,7 +92,7 @@ error. AI output is **not professional advice** of any kind. You are
 responsible for reviewing anything the AI says or does before relying on it,
 and for every action you confirm.
 
-## 6. Third-party services are your responsibility
+## 7. Third-party services are your responsibility
 
 Frontier does not provide, operate, or control any AI model, speech service, or
 website. If you connect a third-party service (for example Ollama, OpenAI,
@@ -86,7 +105,7 @@ Anthropic, OpenRouter, or a speech-recognition service):
 Using Frontier to automate actions on websites may conflict with those
 websites' terms of service. You are responsible for how you use it.
 
-## 7. Release and limitation of liability
+## 8. Release and limitation of liability
 
 To the **maximum extent permitted by applicable law**:
 
@@ -114,7 +133,7 @@ rights). In those jurisdictions, the exclusions and limitations above apply
 only to the extent the law allows, and nothing here limits any right you have
 that cannot be waived by law.
 
-## 8. Changes
+## 9. Changes
 
 These terms may change in future versions of the repository. The version that
 accompanies the copy of the software you are using applies to that copy.

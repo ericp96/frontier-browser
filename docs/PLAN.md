@@ -167,7 +167,7 @@ first. The grammar is data, so other language packs plug in.
   - the Electron user agent
   - permission and certificate prompts
 
-  **Patch SLA:** each Electron security release ships within 7 days, or
+  **Patch SLA (goal for a future funded effort only; today the project ships source, not builds):** each Electron security release ships within 7 days, or
   the app announces on launch that it is out of date.
 - **Evaluate extension-first distribution (E1.8).** A Chrome or Chromium
   side panel plus content scripts with an optional native helper would
@@ -205,7 +205,7 @@ first. The grammar is data, so other language packs plug in.
 |---|---|---|
 | **0a: Foundations (docs and governance)** | Plan, backlog, adversarial review, compliance matrix, threat model, hotkey matrix; a paid advisory panel of blind users recruited | Docs ✅. Panel recruited ⬜ (not code work) |
 | **0b: Engine and shell** (this repo) | Core engine, Electron shell, CLI, real-Chromium tests, automated WCAG audit | ✅ in code. **Remaining:** Electron end-to-end tests in CI; manual SR and braille QA across NVDA, JAWS, Narrator, VoiceOver and Orca |
-| **1: Usable daily driver** | Tabs, bookmarks and history by voice; content blocking; Safe Browsing replacement; cross-origin iframes; credentials and passkeys; OTP assist; on-device STT option; voice onboarding tutorial; signed installers and auto-update | Cohort testing (§6) passes. Counsel signs off COMPLIANCE.md. "Log in with 2FA" task passes |
+| **1: Usable daily driver** | Tabs, bookmarks and history by voice; content blocking; Safe Browsing replacement; cross-origin iframes; credentials and passkeys; OTP assist; on-device STT option; voice onboarding tutorial (source builds only: the project publishes no installers, see DISCLAIMER §2) | Cohort testing (§6) passes. Counsel signs off COMPLIANCE.md. "Log in with 2FA" task passes |
 | **2: Intelligence** | Image description (BYO vision); table and chart narration; dual-LLM quarantine; page-change narration; multi-step tasks with step-by-step confirmation | Benchmark on recorded fixtures ≥ 85% task success. Injection attack success ≤ 1% on the corpus |
 | **3: Native fork (gated)** | Only if the go/no-go criteria are met | 72-hour SLA proven over 3 releases |
 | **4: Ecosystem** | Android backend, community language packs, community skills | — |

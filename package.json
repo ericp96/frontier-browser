@@ -15,7 +15,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "cli": "npm run start -w @frontier/cli --",
-    "desktop": "npm run start -w @frontier/desktop"
+    "desktop": "npm run start -w @frontier/desktop",
+    "check:distribution": "node scripts/check-no-distribution.mjs"
   },
   "engines": {
     "node": ">=20"

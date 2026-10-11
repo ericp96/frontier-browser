@@ -1,5 +1,6 @@
 {
   "name": "@frontier/core",
+  "private": true,
   "version": "0.1.0",
   "description": "Frontier Browser engine: page understanding, command grammar, BYO-model planner, safety gate, speech abstractions.",
   "license": "MPL-2.0",

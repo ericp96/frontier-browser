@@ -308,6 +308,15 @@ async function createWindow(): Promise<void> {
   });
   // Spoken on every launch: a blind user may never open DISCLAIMER.md.
   await output.announce({ text: SPOKEN_DISCLAIMER, kind: 'alert', source: 'browser' });
+  // The project never publishes installers. A packaged copy came from
+  // someone else and may be modified or out of date.
+  if (app.isPackaged) {
+    await output.announce({
+      text: 'Warning: this is an unofficial packaged copy of Frontier. The Frontier project does not publish installers, so this copy was made by someone else and may be modified, unsafe, or out of date.',
+      kind: 'alert',
+      source: 'browser',
+    });
+  }
   await page.webContents.loadURL(HOME_URL);
 }
 

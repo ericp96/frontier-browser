@@ -94,7 +94,13 @@ maintained**. See [DISCLAIMER.md](DISCLAIMER.md). For the details:
 **It has not yet been tested with blind users.** That is the next
 milestone, and their judgement overrides ours.
 
-## Try it
+## Try it (from source only)
+
+This project is **academic and experimental**. It publishes **no installers,
+binaries or packages**, and never will: every package is private, and CI fails
+if packaging or publishing is added (`npm run check:distribution`). If you find
+a "Frontier Browser" download somewhere, it is unofficial. See
+[DISCLAIMER.md](DISCLAIMER.md).
 
 You need Node 20+ and Chromium (or Chrome).
 

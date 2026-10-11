@@ -3,6 +3,11 @@ on:
   push:
   pull_request:
 
+# Read-only: this workflow can't create releases, tags or packages.
+# The project publishes no installers (see DISCLAIMER.md).
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,6 +15,8 @@ jobs:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Distribution policy (no installers, no publishing)
+        run: node scripts/check-no-distribution.mjs
       - uses: actions/setup-node@v4
         with:
           node-version: 22

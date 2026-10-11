@@ -1,10 +1,13 @@
 {
   "name": "@frontier/cli",
+  "private": true,
   "version": "0.1.0",
   "description": "Frontier Browser in the terminal: text in, text out. Works with terminal screen readers and braille displays.",
   "license": "MPL-2.0",
   "type": "module",
-  "bin": { "frontier": "dist/main.js" },
+  "bin": {
+    "frontier": "dist/main.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

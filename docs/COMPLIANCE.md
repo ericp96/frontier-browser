@@ -51,7 +51,7 @@ transfers. The controls below exist to keep it true.
 | Bundled models (future) | none | model licences (Llama Community, Gemma terms, …) | Distributor | Licence review gate before anything is bundled. Whisper (MIT) is fine | Gate defined (E8.10) |
 | Encryption in the software | n/a | **US EAR** §742.15 / License Exception ENC | Exporter of publicly available source | Confirm that the 2021 EAR amendments remove the notification requirement for publicly available standard cryptography. We use only platform and Chromium TLS | Open (E8.11) |
 | Names and branding | n/a | trademark | n/a | "Chromium" is used only descriptively. Never use Google "Chrome" marks or logos | ✅ |
-| Distribution and licences | n/a | MPL-2.0 (ours); BSD-3-Clause (Chromium); MIT (Electron, jsdom, Anthropic SDK); Apache-2.0 (Playwright, TypeScript); MPL-2.0 (axe-core, dev only) | Distributor | `NOTICE` file. Ship Chromium's `about:credits` with installers | ✅ NOTICE; installer credits open |
+| Distribution and licences | n/a | MPL-2.0 (ours); BSD-3-Clause (Chromium); MIT (Electron, jsdom, Anthropic SDK); Apache-2.0 (Playwright, TypeScript); MPL-2.0 (axe-core, dev only) | Source publisher only (no binaries are distributed) | `NOTICE` file. If a binary were ever distributed, Chromium's `about:credits` would have to ship with it; by policy none is | ✅ |
 
 ## 4. Accessibility law: where it applies
 

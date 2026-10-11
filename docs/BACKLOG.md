@@ -117,7 +117,7 @@ Items tagged **[AR-n]** were added or changed by the
 | E6.4 | Bookmarks and history by voice | P1 | ⬜ |
 | E6.5 | Downloads announced | P1 | 🟡 start and finish announced; opening files ⬜ |
 | E6.6 | Reader view (large text, high contrast) | P1 | ⬜ |
-| E6.7 | Signed releases with delta auto-update [AR-15] | P1 | ⬜ |
+| E6.7 | ~~Signed releases with delta auto-update~~ **Out of scope by policy:** the project publishes no installers (DISCLAIMER §2, enforced by `scripts/check-no-distribution.mjs`) | — | won't do |
 | E6.8 | Content and ad blocking with filter lists [AR-15] | P0 | ⬜ |
 | E6.9 | Consent-banner handling ("reject all", announced) [AR-15] | P1 | ⬜ |
 | E6.10 | Data-saver mode [AR-15] | P1 | ⬜ |
@@ -148,6 +148,7 @@ Items tagged **[AR-n]** were added or changed by the
 | E8.1 | Compliance matrix by feature [AR-18] | P0 | ✅ docs/COMPLIANCE.md |
 | E8.2 | Accessibility Conformance Report (VPAT 2.5) | P1 | ⬜ |
 | E8.3 | Third-party notices; full MPL-2.0 text in LICENSE | P0 | ✅ |
+| E8.18 | No-distribution policy enforced in CI; packages private; read-only workflow token; packaged copies announce themselves as unofficial | P0 | ✅ |
 | E8.17 | Disclaimer and release of liability (DISCLAIMER.md), spoken at launch and on request ("disclaimer") | P0 | ✅ not reviewed by a lawyer |
 | E8.4 | Privacy and AI transparency notice, spoken on request ("privacy") | P0 | ✅ |
 | E8.5 | Accessibility statement and feedback channel | P0 | ✅ |
