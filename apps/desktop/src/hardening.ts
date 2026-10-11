@@ -18,6 +18,10 @@ const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'about:']);
 
 export function hardenWebSession(ses: Session, hooks: HardeningHooks): void {
   ses.setUserAgent(cleanUserAgent(ses.getUserAgent()));
+  // No silent calls to Google: spellcheck dictionaries come from
+  // redirector.gvt1.com (found by running the app with egress logging).
+  ses.setSpellCheckerEnabled(false);
+  ses.setSpellCheckerDictionaryDownloadURL('https://0.0.0.0/');
 
   // Deny-by-default permissions, announced so the user knows why something
   // isn't working. (Per-site "allow" by voice: backlog E5.13.)

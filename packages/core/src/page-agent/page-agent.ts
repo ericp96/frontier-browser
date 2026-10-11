@@ -613,7 +613,12 @@ export function installPageAgent(winArg?: Window): PageAgentApi {
           kind,
           name: clip(name, 200),
           required: input.required === true || el.getAttribute('aria-required') === 'true',
-          invalid: el.getAttribute('aria-invalid') === 'true' || (typeof input.checkValidity === 'function' && input.value !== '' && !input.checkValidity()),
+          // A checkbox's value is "on" whether or not it's checked, so native
+          // validity would call every unchecked required box an error. Only the
+          // page's own aria-invalid counts for checkboxes and radios.
+          invalid:
+            el.getAttribute('aria-invalid') === 'true' ||
+            (kind !== 'checkbox' && kind !== 'radio' && typeof input.checkValidity === 'function' && input.value !== '' && !input.checkValidity()),
           disabled: input.disabled === true || el.getAttribute('aria-disabled') === 'true',
         };
         const desc = description(el);

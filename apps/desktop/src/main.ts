@@ -35,6 +35,7 @@ import {
 } from '@frontier/core';
 import { hardenApp, hardenPageContents, hardenWebSession } from './hardening.js';
 import { SecretStore } from './secrets.js';
+import { cleanUserAgent } from './ua.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SHELL_DIR = join(here, '..', 'shell');
@@ -154,6 +155,9 @@ async function createWindow(): Promise<void> {
       autoplayPolicy: 'document-user-activation-required',
       safeDialogs: true,
       navigateOnDragDrop: false,
+      // Spellcheck would download dictionaries from Google; we promise no
+      // network traffic beyond the pages the user visits.
+      spellcheck: false,
     },
   });
   win.contentView.addChildView(page);
@@ -185,12 +189,16 @@ async function createWindow(): Promise<void> {
   shell.webContents.on('will-navigate', (e) => e.preventDefault());
   shell.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   // Microphone only for the trusted shell (push-to-talk).
+  shell.webContents.session.setSpellCheckerEnabled(false);
+  shell.webContents.session.setSpellCheckerDictionaryDownloadURL('https://0.0.0.0/');
   shell.webContents.session.setPermissionRequestHandler((wc, permission, cb) => cb(wc === shell.webContents && permission === 'media'));
 
-  await shell.webContents.loadFile(join(SHELL_DIR, 'shell.html'));
 
   const output = new ShellOutput(shell.webContents, page.webContents);
   notifyUser = (text) => void output.announce({ text, kind: 'alert', source: 'browser' });
+  // CDP commands only get answered once the page view has a renderer, so
+  // give it an empty document before attaching the debugger.
+  await page.webContents.loadURL(HOME_URL);
   const backend = new CdpBackend(debuggerTransport(page.webContents));
   await backend.init();
   const consent = new ConsentStore(existsSync(consentPath()) ? (JSON.parse(readFileSync(consentPath(), 'utf8')) as Record<string, 'always' | 'never'>) : {});
@@ -283,6 +291,11 @@ async function createWindow(): Promise<void> {
     }
   });
 
+  // Load the shell only now: it calls frontier:get-settings as soon as it
+  // starts, so every IPC handler must already be registered. Announcements
+  // below need it loaded.
+  await shell.webContents.loadFile(join(SHELL_DIR, 'shell.html'));
+
   // A helper can hand the user a setup file: frontier --import-config setup.json (AR-10).
   const importArg = process.argv.indexOf('--import-config');
   if (importArg > 0 && process.argv[importArg + 1]) {
@@ -322,5 +335,9 @@ async function createWindow(): Promise<void> {
 
 hardenApp({ notify: (t) => notifyUser(t), protectedOrigins: () => [] });
 app.enableSandbox();
+// The app-wide default user agent wins over the session's, so clean it here
+// too. Found by running the app: pages saw "@frontier/desktop … Electron/…",
+// which could reveal that the user relies on assistive technology.
+app.userAgentFallback = cleanUserAgent(app.userAgentFallback);
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());

@@ -879,9 +879,13 @@ export class Assistant {
       return;
     }
     const field = d.controls.find((c) => c.form === form)!;
-    const missing = d.controls.filter((c) => c.form === form && c.required && !c.value && !c.hasValue && c.kind !== 'checkbox');
-    if (missing.length) {
-      await this.say(`Before submitting: ${missing.map((c) => c.name).join(', ')} ${missing.length === 1 ? 'is' : 'are'} required and empty.`, 'alert');
+    const missing = d.controls.filter((c) => c.form === form && c.required && c.kind !== 'checkbox' && c.kind !== 'radio' && !c.value && !c.hasValue);
+    const unchecked = d.controls.filter((c) => c.form === form && c.required && c.kind === 'checkbox' && !c.checked);
+    if (missing.length || unchecked.length) {
+      const parts = [];
+      if (missing.length) parts.push(`${missing.map((c) => c.name).join(', ')} ${missing.length === 1 ? 'is' : 'are'} required and empty`);
+      if (unchecked.length) parts.push(`${unchecked.map((c) => `"${c.name}"`).join(', ')} must be checked`);
+      await this.say(`Before submitting: ${parts.join('; and ')}.`, 'alert');
       return;
     }
     if (!(await this.gate(assessAction({ type: 'submit', ref: field.ref }, d), d, field.ref))) return;

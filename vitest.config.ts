@@ -7,7 +7,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
-          exclude: ['**/*.integration.test.ts', '**/node_modules/**'],
+          exclude: ['**/*.integration.test.ts', '**/*.e2e.test.ts', '**/node_modules/**'],
           environment: 'node',
         },
       },
@@ -17,6 +17,15 @@ export default defineConfig({
           include: ['packages/*/test/**/*.integration.test.ts', 'apps/*/test/**/*.integration.test.ts'],
           testTimeout: 30000,
           hookTimeout: 30000,
+          fileParallelism: false,
+        },
+      },
+      {
+        test: {
+          name: 'electron',
+          include: ['apps/desktop/test/**/*.e2e.test.ts'],
+          testTimeout: 30000,
+          hookTimeout: 60000,
           fileParallelism: false,
         },
       },

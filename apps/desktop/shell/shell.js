@@ -90,23 +90,71 @@ function spokenText(a) {
   return typeof a.spoken === 'string' ? a.spoken : a.text;
 }
 
+// If no speech engine is installed (common on minimal Linux), utterances
+// never start or never end. Without a fallback the whole assistant would
+// wait forever on the first sentence. Found by running the real app.
+let ttsUnavailable = false;
+let finishCurrent = null;
+
+function noVoicesFallback() {
+  if (ttsUnavailable) return;
+  ttsUnavailable = true;
+  log.setAttribute('aria-live', 'polite');
+  addEntry({
+    source: 'browser',
+    kind: 'alert',
+    text: 'I could not find a speech voice on this computer, so I will show text only. A screen reader can read it, or you can install a speech engine and restart.',
+  });
+}
+
 async function pump() {
   if (speaking) return;
   speaking = true;
   while (queue.length) {
     const item = queue.shift();
+    if (ttsUnavailable) {
+      api.delivered(item.id, 'done');
+      continue;
+    }
     if (item.a.source === 'browser' && (item.a.kind === 'confirm' || item.a.kind === 'alert')) await earcon(item.a.kind);
+    const text = spokenText(item.a);
     const result = await new Promise((resolve) => {
-      const u = new SpeechSynthesisUtterance(spokenText(item.a));
+      let started = false;
+      let settled = false;
+      const finish = (r) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(startTimer);
+        clearTimeout(endTimer);
+        finishCurrent = null;
+        resolve(r);
+      };
+      const u = new SpeechSynthesisUtterance(text);
       u.rate = rate;
       // Page content in a slightly different voice than Frontier's own words.
       if (item.a.source === 'page') u.pitch = 0.85;
       const v = voiceFor(item.a.lang);
       if (v) u.voice = v;
       if (item.a.lang) u.lang = item.a.lang;
-      u.onend = () => resolve('done');
-      u.onerror = () => resolve('interrupted');
-      item.cancel = () => resolve('interrupted');
+      u.onstart = () => (started = true);
+      u.onend = () => finish('done');
+      // Only a real cancel is an interruption. Any other error means speech
+      // can't work here; treating it as "interrupted" made the assistant stop
+      // reading, as if the user had cut in.
+      u.onerror = (e) => {
+        if (e.error === 'interrupted' || e.error === 'canceled') return finish('interrupted');
+        noVoicesFallback();
+        finish('done');
+      };
+      finishCurrent = finish;
+      const startTimer = setTimeout(() => {
+        if (started) return;
+        speechSynthesis.cancel();
+        noVoicesFallback();
+        finish('done');
+      }, 3000);
+      // Never wait longer than the text could plausibly take to say.
+      const endTimer = setTimeout(() => finish('done'), 5000 + (text.length * 150) / rate);
       speechSynthesis.speak(u);
     });
     api.delivered(item.id, result);
@@ -116,6 +164,7 @@ async function pump() {
 
 function interruptSpeech() {
   speechSynthesis.cancel();
+  if (finishCurrent) finishCurrent('interrupted');
   for (const q of queue.splice(0)) api.delivered(q.id, 'interrupted');
 }
 

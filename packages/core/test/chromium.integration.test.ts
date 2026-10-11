@@ -156,6 +156,11 @@ describe('end to end on Chromium', () => {
     await assistant.handle('fill email with ada at example dot org');
     await assistant.handle('my full name is Ada Lovelace');
     expect(await page.inputValue('#email')).toBe('ada@example.org');
+    const agreeing = assistant.handle('check I agree to the terms');
+    await waitFor(() => output.last()?.kind === 'confirm');
+    await assistant.handle('yes');
+    await agreeing;
+    expect(await page.isChecked('#terms')).toBe(true);
     const submitting = assistant.handle('submit');
     await page.waitForTimeout(100);
     const confirm = output.last()!;

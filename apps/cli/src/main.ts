@@ -24,6 +24,7 @@ import {
   type Output,
   type FrontierConfig,
   SPOKEN_DISCLAIMER,
+  PRIVATE_CHROMIUM_ARGS,
 } from '@frontier/core';
 
 interface Args {
@@ -72,7 +73,7 @@ async function main(): Promise<void> {
   let config: FrontierConfig = { version: 1 };
   if (args.config) config = parseConfig(readFileSync(args.config, 'utf8'));
   const exe = findChromium(args.chromium);
-  const browser = await chromium.launch({ headless: args.headless, executablePath: exe, args: ['--force-renderer-accessibility'] });
+  const browser = await chromium.launch({ headless: args.headless, executablePath: exe, args: [...PRIVATE_CHROMIUM_ARGS] });
   const context = await browser.newContext();
   const page = await context.newPage();
   const session = await context.newCDPSession(page);

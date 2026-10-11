@@ -4,6 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import { CdpBackend, type CdpTransport } from '../../src/backend/cdp-backend.js';
+import { PRIVATE_CHROMIUM_ARGS } from '../../src/backend/chromium-flags.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 export const FIXTURES = join(here, '..', 'fixtures');
@@ -16,7 +17,7 @@ export function chromiumPath(): string | undefined {
 }
 
 export async function launch(): Promise<Browser> {
-  return chromium.launch({ executablePath: chromiumPath(), headless: true, args: ['--force-renderer-accessibility'] });
+  return chromium.launch({ executablePath: chromiumPath(), headless: true, args: [...PRIVATE_CHROMIUM_ARGS] });
 }
 
 /** Serve test/fixtures over HTTP on a random port. */
