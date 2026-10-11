@@ -70,6 +70,14 @@ export class FakeBackend implements BrowserBackend {
 
   async act(action: ElementAction): Promise<ActionResult> {
     this.actions.push(action);
+    // jsdom doesn't navigate on link clicks; emulate it for known pages.
+    if (action.type === 'click') {
+      const el = this.agent!.elements([action.ref])[0] as HTMLAnchorElement | null;
+      if (el?.tagName === 'A' && el.href && this.pages[el.href]) {
+        await this.navigate(el.href);
+        return { ok: true };
+      }
+    }
     return this.agent!.act(action);
   }
 

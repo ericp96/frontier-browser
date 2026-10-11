@@ -26,7 +26,8 @@ function addEntry(a) {
   src.className = 'src';
   // The source label is rendered by the browser, outside any page's reach (AR-1).
   src.textContent = a.kind === 'confirm' && a.source === 'browser' ? 'Frontier asks:' : `${SOURCE_LABEL[a.source] || 'Frontier'}:`;
-  li.append(src, document.createTextNode(a.text));
+  const body = a.source === 'page' && typeof a.display === 'string' && a.display.startsWith('The page says: ') ? a.display : a.text;
+  li.append(src, document.createTextNode(body));
   logList.append(li);
   while (logList.children.length > 500) logList.firstElementChild.remove();
   li.scrollIntoView({ block: 'end' });
@@ -85,9 +86,8 @@ function voiceFor(lang) {
 }
 
 function spokenText(a) {
-  if (a.source === 'ai') return `AI: ${a.text}`;
-  if (a.source === 'browser' && a.kind === 'confirm') return a.text;
-  return a.text.replace(/https?:\/\/\S+/g, 'a link');
+  // Framing is computed in the main process (page impersonation reframed).
+  return typeof a.spoken === 'string' ? a.spoken : a.text;
 }
 
 async function pump() {
@@ -99,6 +99,8 @@ async function pump() {
     const result = await new Promise((resolve) => {
       const u = new SpeechSynthesisUtterance(spokenText(item.a));
       u.rate = rate;
+      // Page content in a slightly different voice than Frontier's own words.
+      if (item.a.source === 'page') u.pitch = 0.85;
       const v = voiceFor(item.a.lang);
       if (v) u.voice = v;
       if (item.a.lang) u.lang = item.a.lang;

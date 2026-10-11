@@ -5,6 +5,7 @@
  */
 import type { ControlInfo, ElementAction, LinkInfo, PageDigest } from '../types.js';
 import { siteOf, speakableSite } from './url-safety.js';
+import { quoteUntrusted } from './policy.js';
 
 export type Risk = 'none' | 'confirm' | 'high';
 
@@ -57,19 +58,20 @@ function assessActionInner(action: ElementAction, digest: PageDigest): RiskAsses
     const formRef = control?.form ?? action.ref;
     if (isSearchOnlyForm(digest, formRef)) return { risk: 'none', what: 'search' };
     const submitBtn = digest.controls.find((c) => c.form === formRef && c.kind === 'submit');
-    const label = submitBtn?.name ?? 'the form';
+    const label = quoteUntrusted(submitBtn?.name ?? 'the form');
     if (formHasSensitive(digest, formRef) || HIGH_RISK.test(label)) return { risk: 'high', what: `submit "${label}"` };
     return { risk: 'confirm', what: `submit "${label}"` };
   }
 
   if (action.type === 'click') {
-    const name = control?.name ?? link?.text ?? '';
+    const name = quoteUntrusted(control?.name ?? link?.text ?? '');
     if (control && (control.kind === 'submit' || control.kind === 'button')) {
       if (control.kind === 'submit' && isSearchOnlyForm(digest, control.form)) return { risk: 'none', what: `press "${name}"` };
       if (HIGH_RISK.test(name)) return { risk: 'high', what: `press "${name}"` };
       if (CONFIRM.test(name)) return { risk: 'confirm', what: `press "${name}"` };
-      // Generic "Continue" on a checkout page can complete a purchase (AR-3).
-      if (onCheckout && CONTINUE.test(name)) return { risk: formHasSensitive(digest, control.form) ? 'high' : 'confirm', what: `press "${name}" on a checkout page` };
+      // On a checkout page ANY button can complete a purchase: "Continue",
+      // "Buy", "Renew", or an unlabelled one (AR-3, review).
+      if (onCheckout) return { risk: formHasSensitive(digest, control.form) || CONTINUE.test(name) ? 'high' : 'confirm', what: `press "${name || 'an unlabelled button'}" on a checkout page` };
       if (control.kind === 'submit') {
         return formHasSensitive(digest, control.form)
           ? { risk: 'high', what: `submit "${name}"` }
@@ -87,10 +89,10 @@ function assessActionInner(action: ElementAction, digest: PageDigest): RiskAsses
   }
 
   if (action.type === 'type' && control?.sensitive) {
-    return { risk: 'confirm', what: `enter your ${control.sensitive === 'otp' ? 'code' : control.sensitive.replace('-', ' ')} into "${control.name}"` };
+    return { risk: 'confirm', what: `enter your ${control.sensitive === 'otp' ? 'code' : control.sensitive.replace('-', ' ')} into "${quoteUntrusted(control.name)}"` };
   }
   if (action.type === 'check' && control && action.checked && /\b(agree|accept|consent|terms|authori[sz]e|auto.?renew)\b/i.test(control.name)) {
-    return { risk: 'confirm', what: `check "${control.name}"` };
+    return { risk: 'confirm', what: `check "${quoteUntrusted(control.name)}"` };
   }
   return { risk: 'none', what: action.type };
 }

@@ -652,7 +652,7 @@ export function installPageAgent(winArg?: Window): PageAgentApi {
     const optInRe = /newsletter|marketing|offers|promotion|subscribe|partners|third.?part|share my|insurance|protection plan|donat|tip|auto.?renew/i;
     for (const c of controls) {
       if (c.kind === 'checkbox' && c.prechecked && c.checked && optInRe.test(c.name)) {
-        warnings.push({ kind: 'prechecked-optin', message: `The box "${c.name}" was already checked for you.`, ref: c.ref });
+        warnings.push({ kind: 'prechecked-optin', message: `The box "${clip(c.name.replace(/["“”]/g, ''), 60)}" was already checked for you.`, ref: c.ref });
       }
     }
     if (here.protocol === 'http:' && !/^(localhost|127\.|\[::1\])/.test(here.hostname) && controls.some((c) => c.sensitive === 'password' || c.sensitive === 'payment')) {
@@ -660,7 +660,7 @@ export function installPageAgent(winArg?: Window): PageAgentApi {
     }
     const modal = Array.from(doc.querySelectorAll('dialog[open], [role="dialog"][aria-modal="true"], [role="alertdialog"]')).find((e) => !isHidden(e));
     if (modal) {
-      warnings.push({ kind: 'modal-open', message: `A dialog is open${accessibleName(modal) ? ': ' + accessibleName(modal) : ''}.`, ref: ref(modal) });
+      warnings.push({ kind: 'modal-open', message: `A dialog is open${accessibleName(modal) ? ': ' + clip(accessibleName(modal).replace(/["“”]/g, ''), 60) : ''}.`, ref: ref(modal) });
     }
     const bodyText = clean(doc.body?.textContent).slice(0, 30000);
     if (/(offer|sale|deal|price|reservation|cart)[^.]{0,40}(ends|expires|held) in|only \d+ left|\b\d{1,2}:\d{2}\b[^.]{0,20}(left|remaining)/i.test(bodyText)) {

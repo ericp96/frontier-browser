@@ -167,6 +167,8 @@ export async function runPlanner(o: PlanOptions): Promise<PlanResult> {
     messages.push({ role: 'assistant', content: res.text, toolCalls: native ? calls : undefined, raw: res.raw });
     const results: string[] = [];
     for (const call of calls) {
+      // "Stop" / "get me out" must also stop the rest of a batch (review #10).
+      if (o.signal?.aborted) return { answer: '', steps: step, sourceText, refused: false, stoppedEarly: true };
       let out: string;
       let isError = false;
       if (!toolNames.has(call.name)) {

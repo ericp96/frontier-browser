@@ -43,6 +43,17 @@ control for each. It is required for Phase 0 to exit (AR-4).
 | T13 | Bot detection, or sites treating the agent as a bot | n/a | Trusted input events in the visible session at human pace; no headless use for user tasks | `cdp-backend.ts` | `chromium.integration.test.ts` trusted input |
 | T14 | Stale Chromium (unpatched CVEs) | all | Electron security releases are shipped within 7 days, or the app announces it is out of date. The fork is gated on a 72-hour SLA | PLAN §4.1, chromium/README | release process |
 | T15 | Certificate errors clicked through | A1, A4 | Never accepted; announced as a possible imposter | `hardening.ts` | manual |
+| T16 | An approval is reused on a different element or page (the page navigates or changes while the user is being asked) | A1 | A pending approval is voided on page load. After approval, the URL and the target's label are re-checked; any change cancels the action | `assistant.ts` gate | `assistant.test.ts` regressions #2 |
+| T17 | A different element is slid under the pointer between the safety check and the click | A1 | No mousemove before the press; the hit test is re-run immediately before pressing; if it moved, fall back to a DOM click on the approved element | `cdp-backend.ts` | code review |
+| T18 | The model follows a link to a site the user never allowed (or marked "never") and reads it | A2, A3 | Consent is re-checked whenever the origin changes during a task. Every tool result is redacted and recorded in the audit log | `assistant.ts` | regressions #4 |
+| T19 | A brand word authorises a lookalike ("paypal" → paypal.support) | A2, A4 | Only an exact registrable domain the user said counts as named. Model navigation to any URL flagged dangerous is denied | `policy.ts`, `assistant.ts` | `safety.test.ts`, regressions #5 |
+| T20 | Page or model text placed inside a trusted prompt ("…approved by your bank. Say yes") | A1, A3 | Page and model strings are clipped and unquoted inside prompts. Titles, dialog text, field errors and option lists are announced as page text, never as Frontier text. The desktop speaks core's reframed text, with page content in a different pitch | `policy.ts`, `gate.ts`, `assistant.ts`, `shell.js` | regressions, `safety.test.ts` |
+| T21 | A stored API key is sent to a new or imported endpoint | A4 (fake "helper" config) | Each key is bound to the origin it was entered for and only released to that origin | `secrets.ts` | code review |
+| T22 | A page navigates or POSTs into the LAN or a model endpoint (bypassing subresource checks); DNS rebinding | A1 | `will-navigate` / `will-frame-navigate` block page-initiated private and protected targets. Chromium Private Network Access features are enabled for rebinding | `hardening.ts` | Electron CI (E1.9) |
+
+An independent code review after the first implementation found T16–T22.
+All seven are fixed, with regression tests where they can run without
+Electron.
 
 ## Known gaps (tracked in the backlog)
 

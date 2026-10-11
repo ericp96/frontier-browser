@@ -268,10 +268,13 @@ export class CdpBackend implements BrowserBackend {
   async act(action: ElementAction): Promise<ActionResult> {
     if (action.type === 'click') {
       const pt = await this.call<{ x: number; y: number } | null>('clickPoint', action.ref);
-      if (pt) {
+      // Re-check the hit test right before pressing, and send no mousemove
+      // first: a page must not get a chance to slide another element under
+      // the pointer after the safety gate approved this one (review #3).
+      const again = pt ? await this.call<{ x: number; y: number } | null>('clickPoint', action.ref) : null;
+      if (pt && again && Math.abs(again.x - pt.x) < 1 && Math.abs(again.y - pt.y) < 1) {
         // Trusted input in the visible session (AR-20).
-        const base = { x: pt.x, y: pt.y, button: 'left', clickCount: 1 };
-        await this.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: pt.x, y: pt.y });
+        const base = { x: again.x, y: again.y, button: 'left', clickCount: 1 };
         await this.cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...base });
         await this.cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...base });
         return { ok: true };

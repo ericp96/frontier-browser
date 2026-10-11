@@ -29,6 +29,8 @@ import {
   type FrontierConfig,
   type Output,
   type ProviderConfig,
+  speakable,
+  formatForLog,
 } from '@frontier/core';
 import { hardenApp, hardenPageContents, hardenWebSession } from './hardening.js';
 import { SecretStore } from './secrets.js';
@@ -97,7 +99,9 @@ class ShellOutput implements Output {
     const id = ++this.seq;
     return new Promise((resolve) => {
       this.waiting.set(id, resolve);
-      this.shell.send('frontier:announce', id, a);
+      // Core decides the framing ("The page says…") so a page can't sound like
+      // Frontier in speech or in the log (review #1).
+      this.shell.send('frontier:announce', id, { ...a, spoken: speakable(a), display: formatForLog(a) });
     });
   }
   interrupt(): void {
@@ -115,7 +119,15 @@ class ShellOutput implements Output {
 async function createWindow(): Promise<void> {
   const config = loadConfig();
   const secrets = new SecretStore(join(userData(), 'secrets.json'));
-  const withKey = (c: ProviderConfig | null | undefined): ProviderConfig | null => (c ? { ...c, apiKey: c.apiKey ?? secrets.get('ai') } : null);
+  const originOf = (u: string | undefined, fallback = '') => {
+    try {
+      return u ? new URL(u).origin : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const aiOrigin = (c: ProviderConfig | null | undefined) => (!c ? '' : c.kind === 'anthropic' ? originOf(c.baseUrl, 'https://api.anthropic.com') : originOf(c.baseUrl));
+  const withKey = (c: ProviderConfig | null | undefined): ProviderConfig | null => (c ? { ...c, apiKey: c.apiKey ?? secrets.get('ai', aiOrigin(c)) } : null);
 
   const win = new BaseWindow({ width: 1280, height: 860, title: 'Frontier Browser', backgroundColor: '#101418' });
 
@@ -189,7 +201,7 @@ async function createWindow(): Promise<void> {
     audit: new AuditLog(),
     settings: { ...config.settings, homeUrl: HOME_URL },
   });
-  const stt = () => (config.speechToText ? new TranscriptionClient({ ...config.speechToText, apiKey: config.speechToText.apiKey ?? secrets.get('speechToText') }) : null);
+  const stt = () => (config.speechToText ? new TranscriptionClient({ ...config.speechToText, apiKey: config.speechToText.apiKey ?? secrets.get('speechToText', originOf(config.speechToText.baseUrl)) }) : null);
 
   // Keys the page can never intercept: handled before the page sees them (AR-8, AR-11).
   const keys = (e: Electron.Event, input: Electron.Input) => {
@@ -215,9 +227,12 @@ async function createWindow(): Promise<void> {
   ipcMain.handle('frontier:command', async (e, text: unknown) => {
     if (e.sender !== shell.webContents || typeof text !== 'string') return;
     page.webContents.setAudioMuted(false);
-    await assistant.handle(text.slice(0, 2000));
-    if (assistant.awaitingAnswer) page.webContents.setAudioMuted(true);
-    writeFileSync(consentPath(), JSON.stringify(consent.toJSON()));
+    try {
+      await assistant.handle(text.slice(0, 2000));
+    } finally {
+      if (assistant.awaitingAnswer) page.webContents.setAudioMuted(true);
+      writeFileSync(consentPath(), JSON.stringify(consent.toJSON()));
+    }
   });
 
   ipcMain.handle('frontier:audio', async (e, audio: unknown) => {
@@ -244,7 +259,7 @@ async function createWindow(): Promise<void> {
       settings: assistant.settings,
       ai: strip(config.ai),
       speechToText: strip(config.speechToText),
-      hasKey: { ai: secrets.has('ai'), speechToText: secrets.has('speechToText') },
+      hasKey: { ai: secrets.hasFor('ai', aiOrigin(config.ai)), speechToText: secrets.hasFor('speechToText', originOf(config.speechToText?.baseUrl)) },
       presets: PROVIDER_PRESETS,
       keyStorageProblem: secrets.unavailableReason(),
     };
@@ -255,8 +270,8 @@ async function createWindow(): Promise<void> {
     try {
       const incoming = raw as { settings?: unknown; ai?: { apiKey?: string } | null; speechToText?: { apiKey?: string } | null };
       const next = parseConfig(JSON.stringify({ version: 1, ...incoming }));
-      if (incoming.ai?.apiKey) secrets.set('ai', incoming.ai.apiKey);
-      if (incoming.speechToText?.apiKey) secrets.set('speechToText', incoming.speechToText.apiKey);
+      if (incoming.ai?.apiKey) secrets.set('ai', incoming.ai.apiKey, aiOrigin(next.ai));
+      if (incoming.speechToText?.apiKey) secrets.set('speechToText', incoming.speechToText.apiKey, originOf(next.speechToText?.baseUrl));
       Object.assign(config, next, { settings: { ...config.settings, ...next.settings } });
       Object.assign(assistant.settings, next.settings);
       assistant.provider = createProvider(withKey(config.ai));
@@ -272,8 +287,8 @@ async function createWindow(): Promise<void> {
   if (importArg > 0 && process.argv[importArg + 1]) {
     try {
       const imported = parseConfig(readFileSync(process.argv[importArg + 1]!, 'utf8'));
-      if (imported.ai?.apiKey) secrets.set('ai', imported.ai.apiKey);
-      if (imported.speechToText?.apiKey) secrets.set('speechToText', imported.speechToText.apiKey);
+      if (imported.ai?.apiKey) secrets.set('ai', imported.ai.apiKey, aiOrigin(imported.ai));
+      if (imported.speechToText?.apiKey) secrets.set('speechToText', imported.speechToText.apiKey, originOf(imported.speechToText.baseUrl));
       Object.assign(config, imported);
       saveConfig(config);
       assistant.provider = createProvider(withKey(config.ai));

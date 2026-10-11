@@ -24,17 +24,23 @@ export type PolicyDecision =
   | { kind: 'deny'; reason: string }
   | { kind: 'confirm'; reason: string };
 
+/** Model/page text quoted inside a trusted prompt: short, no quotes, one line (review #7). */
+export function quoteUntrusted(s: string, max = 60): string {
+  const t = s.replace(/[\r\n]+/g, ' ').replace(/["“”'‘’`]/g, '').trim();
+  return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t;
+}
+
 function norm(s: string): string {
   return s.toLowerCase().replace(/[\s ]+/g, ' ').trim();
 }
 
 /** Did the user name this site in their request? ("go to bbc", "on amazon.co.uk") */
 export function userNamedSite(userText: string, site: string): boolean {
-  const t = norm(userText);
+  // Only an exact registrable domain counts. "pay my paypal bill" must NOT
+  // authorise paypal.support (review #5); the user is asked instead.
+  const t = norm(userText).replace(/\s+dot\s+/g, '.');
   if (!site) return false;
-  if (t.includes(site)) return true;
-  const label = site.split('.')[0] ?? '';
-  return label.length >= 3 && new RegExp(`\\b${label.replace(/[^a-z0-9-]/g, '')}\\b`).test(t);
+  return new RegExp(`(^|[^a-z0-9.-])(www\\.)?${site.replace(/[.]/g, '\\.')}($|[^a-z0-9-])`).test(t);
 }
 
 /** Did this exact text come from the user, rather than from the page? */
@@ -89,7 +95,7 @@ export function checkPolicy(action: PlannedAction, ctx: TaskContext, digest: Pag
       return { kind: 'deny', reason: `The assistant may not fill in your ${control.sensitive.replace('-', ' ')}. Please type it yourself.` };
     }
     if (!textFromUser(ctx.userText, action.text)) {
-      return { kind: 'confirm', reason: `The assistant wants to type "${action.text}" into ${control?.name || 'a field'}, but you didn't say that text.` };
+      return { kind: 'confirm', reason: `The assistant wants to type "${quoteUntrusted(action.text)}" into ${quoteUntrusted(control?.name || 'a field', 40)}, but you didn't say that text.` };
     }
     return { kind: 'allow' };
   }
@@ -97,7 +103,7 @@ export function checkPolicy(action: PlannedAction, ctx: TaskContext, digest: Pag
   if (action.type === 'select') {
     if (!textFromUser(ctx.userText, action.option)) {
       const control = digest.controls.find((c) => c.ref === action.ref);
-      return { kind: 'confirm', reason: `The assistant wants to choose "${action.option}" in ${control?.name || 'a list'}.` };
+      return { kind: 'confirm', reason: `The assistant wants to choose "${quoteUntrusted(action.option)}" in ${quoteUntrusted(control?.name || 'a list', 40)}.` };
     }
     return { kind: 'allow' };
   }

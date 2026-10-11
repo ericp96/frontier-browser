@@ -48,10 +48,12 @@ describe('content first', () => {
     const { backend, output } = setup();
     await backend.navigate('https://garden.example/tomatoes');
     await settle();
-    const [first, second] = output.log;
-    expect(first).toMatchObject({ source: 'browser', text: expect.stringMatching(/^How to Grow Tomatoes \| Garden News\. Article, about 1 minute to read\.$/) });
+    const [title, kind, first] = output.log;
+    // The title is page-controlled, so it is framed as page text; the page kind is our own fact.
+    expect(title).toMatchObject({ source: 'page', text: 'How to Grow Tomatoes | Garden News.' });
+    expect(kind).toMatchObject({ source: 'browser', text: 'Article, about 1 minute to read.' });
     // The repeated h1 is skipped; the first thing read is real content.
-    expect(second).toMatchObject({ source: 'page', kind: 'content', lang: 'en', text: expect.stringMatching(/^Tomatoes need at least six hours/) });
+    expect(first).toMatchObject({ source: 'page', kind: 'content', lang: 'en', text: expect.stringMatching(/^Tomatoes need at least six hours/) });
     expect(output.texts().join(' ')).toMatch(/Heading: Planting/);
   });
 
@@ -135,7 +137,8 @@ describe('navigation and reading', () => {
     const { backend, output, assistant } = setup({ pages: { 'https://x.example/': '<main><button>Delete draft</button><button>Delete account</button></main>' } });
     await backend.navigate('https://x.example/');
     await assistant.handle('click delete');
-    expect(output.last()!.text).toMatch(/I found 2: 1, Delete draft\. 2, Delete account\. Which one\?/);
+    expect(output.log.at(-2)).toMatchObject({ kind: 'confirm', source: 'browser', text: 'I found 2 matches. Which one? Say a number.' });
+    expect(output.last()).toMatchObject({ source: 'page', text: '1, Delete draft. 2, Delete account.' });
     void assistant.handle('1');
     await settle();
     expect(output.last()).toMatchObject({ kind: 'confirm', text: expect.stringMatching(/press "Delete draft"/) });
@@ -348,6 +351,76 @@ describe('prompt-injection corpus (a compromised model that obeys the page)', ()
     await env.assistant.handle('no');
     await run;
     expect(env.backend.actions.some((a) => a.type === 'click')).toBe(false);
+  });
+});
+
+describe('regressions from the code review', () => {
+  test('a pending approval never carries over to a new page (#2)', async () => {
+    const { backend, assistant } = setup({ pages: { 'https://x.example/': '<main><button>Delete draft</button></main>', 'https://x.example/next': '<main><button>Place order</button></main>' } });
+    await backend.navigate('https://x.example/');
+    const p = assistant.handle('click delete draft');
+    await settle();
+    // The page navigates by itself while the user is being asked.
+    await backend.navigate('https://x.example/next');
+    await settle();
+    await assistant.handle('yes');
+    await p;
+    expect(backend.actions.some((a) => a.type === 'click')).toBe(false);
+  });
+
+  test('model navigation to a lookalike is denied even if the user said the brand (#5)', async () => {
+    const provider = new ScriptedProvider([
+      { text: '', toolCalls: [{ id: '1', name: 'navigate', arguments: { url: 'https://paypa1.com/login' } }] },
+      { text: 'Blocked.', toolCalls: [] },
+    ], true);
+    const { backend, output, assistant } = setup({ provider });
+    await backend.navigate('https://garden.example/tomatoes');
+    await assistant.handle('pay my paypal bill');
+    expect(backend.navigations).not.toContain('https://paypa1.com/login');
+    expect(output.texts().join(' ')).toMatch(/fake or dangerous site/);
+  });
+
+  test('when the model moves to a "never" site, nothing from it is sent (#4)', async () => {
+    const provider = new ScriptedProvider([], true);
+    const env = setup({ provider, pages: { 'https://bank.example/': '<title>Bank</title><main><p>Balance: $12,345.67</p></main>', 'https://news.example/': '<main><p>News text here for reading.</p><a href="https://bank.example/">My bank</a></main>' } });
+    env.assistant.consent.set('https://bank.example', 'never');
+    await env.backend.navigate('https://news.example/');
+    const link = (await env.backend.digest()).links[0]!.ref;
+    provider['script'].push(
+      { text: '', toolCalls: [{ id: '1', name: 'click', arguments: { ref: link } }] },
+      { text: '', toolCalls: [{ id: '2', name: 'get_outline', arguments: {} }] },
+      { text: 'Done.', toolCalls: [] },
+    );
+    const run = env.assistant.handle('get my balance from bank.example');
+    await settle();
+    // Navigation completes in the fake via the click; answer any prompt with no.
+    if (env.assistant.awaitingAnswer) await env.assistant.handle('no');
+    await run;
+    expect(env.backend.navigations).toContain('https://bank.example/');
+    const sent = provider.calls.flatMap((c) => c.messages.map((m) => m.content)).join('\n');
+    expect(sent).not.toMatch(/12,345/);
+    expect(sent).toMatch(/has not allowed sending bank\.example/);
+  });
+
+  test('tool results are redacted, not only the first page context (#4)', async () => {
+    const provider = new ScriptedProvider([
+      { text: '', toolCalls: [{ id: '1', name: 'find_text', arguments: { query: 'code' } }] },
+      { text: 'OK', toolCalls: [] },
+    ], true);
+    const { backend, assistant } = setup({ provider, pages: { 'https://m.example/': '<main><p>Your verification code is 482913. Do not share it.</p></main>' } });
+    await backend.navigate('https://m.example/');
+    await assistant.handle('what is my code?');
+    const sent = provider.calls.flatMap((c) => c.messages.map((m) => m.content)).join('\n');
+    expect(sent).not.toMatch(/482913/);
+  });
+
+  test('errors are spoken instead of silence (#9)', async () => {
+    const { backend, output, assistant } = setup();
+    backend.navigate = async () => {
+      throw new Error("I couldn't find that website.");
+    };
+    await assistant.handle('go to examplee.com');
+    expect(output.last()).toMatchObject({ kind: 'error', text: "I couldn't find that website." });
   });
 });
 

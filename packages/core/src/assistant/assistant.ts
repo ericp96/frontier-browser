@@ -14,8 +14,8 @@ import { isQuestion, parseCommand, type Intent, type MoveUnit, type Target } fro
 import { resolveTarget, type Candidate } from '../commands/resolve.js';
 import { assessAction, buildConfirmation, interpretAnswer, type Confirmation, type RiskAssessment } from '../safety/gate.js';
 import { checkPolicy, type AssistantMode, type PlannedAction, type TaskContext } from '../safety/policy.js';
-import { assessUrl, siteOf } from '../safety/url-safety.js';
-import { AuditLog, ConsentStore, sensitiveCategory } from '../privacy/privacy.js';
+import { assessUrl, siteOf, speakableSite } from '../safety/url-safety.js';
+import { AuditLog, ConsentStore, redactText, sensitiveCategory } from '../privacy/privacy.js';
 import { looksLikeSpokenEmail, normalizeDictation, toUrl } from '../text/dictation.js';
 import type { ModelProvider, ToolCall } from '../ai/provider.js';
 import { pageContext, runPlanner } from '../ai/planner.js';
@@ -104,7 +104,8 @@ export class Assistant {
     const offLoad = deps.backend.onPageLoaded(() => void this.pageLoaded());
     const offDialog = deps.backend.onDialog?.((dlg) => {
       const what = dlg.type === 'alert' ? 'a message' : dlg.type === 'confirm' ? 'a question, which I answered "cancel" for safety' : 'a request for input, which I dismissed';
-      void this.say(`The page showed ${what}: "${dlg.message}"`, 'alert');
+      void this.say(`The page showed ${what}.`, 'alert');
+      void this.say(dlg.message, 'info', 'page');
     });
     this.unsubscribe = () => {
       offLoad();
@@ -206,8 +207,13 @@ export class Assistant {
       this.planner = null;
     }
 
-    if (intent) return this.execute(intent, input);
-    return this.askModel(input);
+    try {
+      if (intent) await this.execute(intent, input);
+      else await this.askModel(input);
+    } catch (e) {
+      // Never leave the user with silence (review #9).
+      await this.say((e as Error).message || 'Something went wrong.', 'error');
+    }
   }
 
   private confirm(c: Confirmation): Promise<boolean> {
@@ -217,18 +223,41 @@ export class Assistant {
     });
   }
 
-  private async gate(assessment: RiskAssessment, d: PageDigest): Promise<boolean> {
+  private async gate(assessment: RiskAssessment, d: PageDigest, ref?: string): Promise<boolean> {
     if (assessment.risk === 'none') return true;
-    const c = buildConfirmation(assessment, d, { committedUrl: this.deps.backend.currentUrl(), random: this.deps.random });
+    const urlBefore = this.deps.backend.currentUrl();
+    const c = buildConfirmation(assessment, d, { committedUrl: urlBefore, random: this.deps.random });
     const ok = await this.confirm(c);
-    if (!ok) await this.say('Cancelled. Nothing was done.');
-    return ok;
+    if (!ok) {
+      await this.say('Cancelled. Nothing was done.');
+      return false;
+    }
+    // The approval was for THAT element on THAT page. If either changed while
+    // we waited, the approval is void (review #2).
+    const labelOf = (dg: PageDigest, r: string) => dg.controls.find((x) => x.ref === r)?.name ?? dg.links.find((x) => x.ref === r)?.text;
+    let changed = this.deps.backend.currentUrl() !== urlBefore;
+    if (!changed && ref) {
+      const now = await this.currentDigest(true);
+      changed = labelOf(now, ref) !== labelOf(d, ref);
+    }
+    if (changed) {
+      await this.say('The page changed while I was waiting for you, so I did not do it. Nothing was done.', 'alert');
+      return false;
+    }
+    return true;
   }
 
   // ---- Page load: content first ------------------------------------------------
 
   async pageLoaded(): Promise<void> {
     this.readingToken++;
+    this.pendingChoice = null;
+    if (this.pendingConfirm) {
+      // A pending approval never carries over to a new page (review #2).
+      const p = this.pendingConfirm;
+      this.pendingConfirm = null;
+      p.resolve(false);
+    }
     this.cursors = {};
     this.readPos = 0;
     this.lastList = [];
@@ -255,7 +284,9 @@ export class Assistant {
 
     // 2. Where am I.
     const kind = this.kindPhrase(d);
-    await this.say(`${d.title}.${kind ? ' ' + kind + '.' : ''}`);
+    // The title is page-controlled: it is spoken as page text, then our own facts.
+    await this.say(`${d.title}.`, 'info', 'page');
+    if (kind) await this.say(`${kind}.`);
     for (const w of d.warnings.filter((w) => !['scam-suspected', 'insecure-password', 'unlabelled-controls'].includes(w.kind))) {
       await this.say(w.message, 'alert');
     }
@@ -719,7 +750,8 @@ export class Assistant {
     if (r.status === 'ambiguous') {
       this.pendingChoice = { options: r.options, run };
       this.lastList = r.options;
-      await this.say(`I found ${r.options.length}: ${r.options.map((o, i) => `${i + 1}, ${o.label}`).join('. ')}. Which one?`, 'confirm');
+      await this.say(`I found ${r.options.length} matches. Which one? Say a number.`, 'confirm');
+      await this.say(r.options.map((o, i) => `${i + 1}, ${o.label}`).join('. ') + '.', 'list', 'page');
       return;
     }
     const what = target.name ? `"${target.name}"` : `number ${target.ordinal}`;
@@ -749,7 +781,7 @@ export class Assistant {
       return;
     }
     const assessment = assessAction({ type: 'click', ref: c.ref }, d);
-    if (!(await this.gate(assessment, d))) return;
+    if (!(await this.gate(assessment, d, c.ref))) return;
     const before = this.deps.backend.currentUrl();
     const res = await this.deps.backend.act({ type: 'click', ref: c.ref });
     if (!res.ok) return void (await this.say(res.message ?? "That didn't work.", 'error'));
@@ -763,7 +795,8 @@ export class Assistant {
     const d = await this.currentDigest(true);
     const bad = d.controls.filter((c) => c.invalid);
     if (bad.length) {
-      await this.say(`${done} ${bad.length} field${bad.length === 1 ? ' has a problem' : 's have problems'}: ${bad.slice(0, 4).map((c) => `${c.name}${c.error ? ' — ' + c.error : ''}`).join('; ')}.`, 'alert');
+      await this.say(`${done} ${bad.length} field${bad.length === 1 ? ' has a problem' : 's have problems'}.`, 'alert');
+      await this.say(bad.slice(0, 4).map((c) => `${c.name}${c.error ? ': ' + c.error : ''}`).join('. ') + '.', 'list', 'page');
       return;
     }
     await this.say(done);
@@ -818,7 +851,7 @@ export class Assistant {
 
   private async checkControl(control: ControlInfo, checked: boolean): Promise<void> {
     const d = await this.currentDigest();
-    if (!(await this.gate(assessAction({ type: 'check', ref: control.ref, checked }, d), d))) return;
+    if (!(await this.gate(assessAction({ type: 'check', ref: control.ref, checked }, d), d, control.ref))) return;
     const res = await this.deps.backend.act({ type: 'check', ref: control.ref, checked });
     if (!res.ok) return void (await this.say(res.message ?? "That didn't work.", 'error'));
     await this.say(`${control.name || 'Checkbox'} ${checked ? 'checked' : 'unchecked'}.`);
@@ -843,7 +876,7 @@ export class Assistant {
       await this.say(`Before submitting: ${missing.map((c) => c.name).join(', ')} ${missing.length === 1 ? 'is' : 'are'} required and empty.`, 'alert');
       return;
     }
-    if (!(await this.gate(assessAction({ type: 'submit', ref: field.ref }, d), d))) return;
+    if (!(await this.gate(assessAction({ type: 'submit', ref: field.ref }, d), d, field.ref))) return;
     const before = this.deps.backend.currentUrl();
     const res = await this.deps.backend.act({ type: 'submit', ref: field.ref });
     if (!res.ok) return void (await this.say(res.message ?? "I couldn't submit the form.", 'error'));
@@ -942,25 +975,53 @@ export class Assistant {
     if (!this.terse) void this.say(mode === 'ask' ? 'Let me check.' : 'Working on it. Say "stop" to cancel.', 'hint');
     this.audit.record({ provider: provider.label, local: provider.isLocal, origin: d.origin, purpose: mode === 'ask' ? 'question' : 'task', chars: pageContext(d, input).length });
 
+    // Origins the user has allowed for this task. If the model moves to a new
+    // site, consent is checked again before any of that site is sent (review #4).
+    const allowedOrigins = new Set<string>([d.origin]);
+    const ensureConsent = async (): Promise<boolean> => {
+      if (allowedOrigins.has(d.origin)) return true;
+      const c = this.consent.check(d.origin, provider.isLocal);
+      if (c === 'deny') return false;
+      if (c === 'ask') {
+        const answer = await this.askConsent(provider, d);
+        if (!answer || answer === 'never') {
+          if (answer === 'never') this.consent.set(d.origin, 'never');
+          return false;
+        }
+        this.consent.set(d.origin, answer);
+      }
+      allowedOrigins.add(d.origin);
+      return true;
+    };
+    const send = (text: string): string => {
+      const out = redactText(text);
+      this.audit.record({ provider: provider.label, local: provider.isLocal, origin: d.origin, purpose: 'tool result', chars: out.length });
+      return out;
+    };
+    const notAllowed = () => `The user has not allowed sending ${siteOf(d.url)} to the AI. Stop and tell the user you could not read this site.`;
+
     const execute = async (call: ToolCall): Promise<string> => {
+      if (controller.signal.aborted) return 'Cancelled by the user.';
       const a = call.arguments as Record<string, string | number | boolean | undefined>;
       const ref = String(a.ref ?? '');
+      const readTool = ['get_outline', 'read_section', 'find_text', 'list_controls', 'describe'].includes(call.name);
+      if (readTool && !(await ensureConsent())) return notAllowed();
       switch (call.name) {
         case 'get_outline':
-          return pageContext(d, '', 3000);
+          return send(pageContext(d, '', 3000));
         case 'read_section': {
           const i = d.main.findIndex((b) => b.ref === ref);
           const start = i >= 0 ? i : 0;
-          return d.main.slice(start, start + Math.min(Number(a.count ?? 10), 30)).map((b) => `[${b.ref}] ${b.text}`).join('\n') || 'No text there.';
+          return send(d.main.slice(start, start + Math.min(Number(a.count ?? 10), 30)).map((b) => `[${b.ref}] ${b.text}`).join('\n') || 'No text there.');
         }
         case 'find_text': {
           const hits = await this.deps.backend.findText(String(a.query ?? ''));
-          return hits.length ? hits.map((h) => `[${h.ref}] ${h.text}`).join('\n') : 'Not found.';
+          return send(hits.length ? hits.map((h) => `[${h.ref}] ${h.text}`).join('\n') : 'Not found.');
         }
         case 'list_controls':
-          return d.controls.map((c) => `[${c.ref}] ${this.describeControl(c)}`).join('\n') || 'No controls.';
+          return send(d.controls.map((c) => `[${c.ref}] ${this.describeControl(c)}`).join('\n') || 'No controls.');
         case 'describe':
-          return this.deps.backend.describe(ref);
+          return send(await this.deps.backend.describe(ref));
       }
       // ---- Actions: policy, then safety gate, then do it. ----
       let planned: PlannedAction;
@@ -974,6 +1035,10 @@ export class Assistant {
         case 'go_back': planned = { type: 'back' }; break;
         default: return `Unknown tool ${call.name}.`;
       }
+      if (planned.type === 'navigate' && assessUrl(planned.url).dangerous) {
+        await this.say(`I stopped the AI from opening ${speakableSite(siteOf(planned.url))}, which looks like a fake or dangerous site.`, 'alert');
+        return 'Blocked by the browser: that address looks dangerous. Do not try it again.';
+      }
       const policy = checkPolicy(planned, ctx, d);
       if (policy.kind === 'deny') {
         await this.say(`I stopped the AI: ${policy.reason}`, 'alert');
@@ -981,11 +1046,12 @@ export class Assistant {
       }
       if (policy.kind === 'confirm') {
         const ok = await this.confirm({ prompt: `${policy.reason} Allow it? Say "yes" or "no".`, risk: 'confirm' });
-        if (!ok) return 'The user said no. Do not try this again; tell the user what you were trying to do.';
+        if (!ok || controller.signal.aborted) return 'The user said no. Do not try this again; tell the user what you were trying to do.';
       }
       if (planned.type !== 'navigate' && planned.type !== 'back') {
-        if (!(await this.gate(assessAction(planned, d), d))) return 'The user declined this action.';
+        if (!(await this.gate(assessAction(planned, d), d, planned.ref))) return 'The user declined or the page changed; nothing was done.';
       }
+      if (controller.signal.aborted) return 'Cancelled by the user.';
       const before = this.deps.backend.currentUrl();
       let ok = true;
       let message: string | undefined;
@@ -995,7 +1061,9 @@ export class Assistant {
       if (!ok) return `That failed: ${message ?? 'unknown error'}`;
       await this.say(this.describeStep(planned, d), 'info');
       d = await this.currentDigest(true);
-      return `Done. ${this.deps.backend.currentUrl() !== before ? 'A new page loaded. ' : ''}Page now: "${d.title}" (${d.kind}).${d.controls.some((c) => c.invalid) ? ' Some fields show errors.' : ''}`;
+      const moved = this.deps.backend.currentUrl() !== before;
+      if (!(await ensureConsent())) return `Done. A new page loaded. ${notAllowed()}`;
+      return send(`Done. ${moved ? 'A new page loaded. ' : ''}Page now: "${d.title}" (${d.kind}).${d.controls.some((c) => c.invalid) ? ' Some fields show errors.' : ''}`);
     };
 
     try {

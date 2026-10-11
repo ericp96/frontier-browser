@@ -57,9 +57,11 @@ export function hardenWebSession(ses: Session, hooks: HardeningHooks): void {
   });
 
   ses.on('will-download', (_e, item) => {
-    hooks.notify(`Downloading ${item.getFilename()}. I'll tell you when it's finished.`);
+    // File names are page-controlled: clip them before they enter a trusted message.
+    const name = item.getFilename().replace(/["“”]/g, '').slice(0, 60);
+    hooks.notify(`Downloading a file named ${name}. I'll tell you when it's finished.`);
     item.once('done', (_ev, state) => {
-      hooks.notify(state === 'completed' ? `Download finished: ${item.getFilename()}, in your Downloads folder.` : `The download of ${item.getFilename()} did not finish.`);
+      hooks.notify(state === 'completed' ? `Download finished: ${name}, in your Downloads folder.` : `The download of ${name} did not finish.`);
     });
   });
 }
@@ -72,13 +74,32 @@ export function hardenPageContents(wc: WebContents, hooks: HardeningHooks & { op
   });
   // Pages can't stop the user leaving (AR-11).
   wc.on('will-prevent-unload', (e) => e.preventDefault());
-  wc.on('will-navigate', (e, url) => {
+  // will-navigate / will-frame-navigate fire only for PAGE-initiated
+  // navigations (links, form posts, location=), never for loadURL calls the
+  // user asked for. A public page may not navigate or POST into the local
+  // network or to the user's model endpoints (review #6).
+  const guard = (e: { preventDefault(): void }, url: string) => {
+    let target: URL;
     try {
-      if (!ALLOWED_SCHEMES.has(new URL(url).protocol)) e.preventDefault();
+      target = new URL(url);
     } catch {
-      e.preventDefault();
+      return e.preventDefault();
     }
-  });
+    if (!ALLOWED_SCHEMES.has(target.protocol)) return e.preventDefault();
+    let from: URL | null = null;
+    try {
+      from = new URL(wc.getURL());
+    } catch {
+      from = null;
+    }
+    const fromPublic = !from || !isPrivateHost(from.hostname);
+    if ((fromPublic && isPrivateHost(target.hostname)) || hooks.protectedOrigins().includes(target.origin)) {
+      e.preventDefault();
+      hooks.notify('The page tried to send you to a device on your own network. I blocked it.');
+    }
+  };
+  wc.on('will-navigate', (e) => guard(e, e.url));
+  wc.on('will-frame-navigate', (e) => guard(e, e.url));
   wc.on('enter-html-full-screen', () => {
     hooks.notify('The page tried to go full screen. I kept the normal view.');
   });
@@ -88,6 +109,9 @@ export function hardenPageContents(wc: WebContents, hooks: HardeningHooks & { op
 }
 
 export function hardenApp(hooks: HardeningHooks): void {
+  // Chromium's Private Network Access protections also catch DNS rebinding,
+  // which hostname checks can't (review #6).
+  app.commandLine.appendSwitch('enable-features', 'BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults');
   // Invalid certificates are never accepted silently (AR-4).
   app.on('certificate-error', (event, _wc, url, error, _cert, callback) => {
     event.preventDefault();

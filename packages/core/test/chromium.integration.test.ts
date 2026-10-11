@@ -24,6 +24,14 @@ afterAll(async () => {
   stop?.();
 });
 
+async function waitFor(cond: () => boolean, ms = 5000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!cond()) {
+    if (Date.now() > end) throw new Error('timed out waiting for condition');
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+
 async function open(path: string): Promise<{ page: Page; backend: CdpBackend }> {
   const page = await browser.newPage();
   const backend = await cdpBackendFor(page);
@@ -119,7 +127,8 @@ describe('dialogs and unload traps (AR-11)', () => {
       setTimeout(() => alert('You have won a prize!'), 0);
     });
     await page.waitForTimeout(200);
-    expect(output.texts().join(' ')).toMatch(/The page showed a message: "You have won a prize!"/);
+    expect(output.texts().join(' ')).toMatch(/The page showed a message\. You have won a prize!/);
+    expect(output.log.find((a) => a.text === 'You have won a prize!')!.source).toBe('page');
     await assistant.handle('get me out');
     expect(backend.currentUrl()).toBe('about:blank');
     assistant.dispose();
@@ -134,16 +143,16 @@ describe('end to end on Chromium', () => {
     const output = new RecordingOutput();
     const assistant = new Assistant({ backend, output, random: () => 0.06 });
     await assistant.handle(`go to ${base}/article.html`);
-    await page.waitForTimeout(100);
+    await waitFor(() => output.texts().some((t) => /Tomatoes need at least six hours/.test(t)));
     const spoken = output.texts().join('\n');
-    expect(spoken).toMatch(/How to Grow Tomatoes \| Garden News\. Article/);
+    expect(spoken).toMatch(/How to Grow Tomatoes \| Garden News\.\nArticle/);
     expect(spoken).toMatch(/Tomatoes need at least six hours/);
 
     await assistant.handle('list headings');
     expect(output.texts().join('\n')).toMatch(/3 headings\.[\s\S]*1: level 1, How to Grow Tomatoes\. 2: level 2, Planting\. 3: level 2, Feeding\./);
 
     await assistant.handle(`go to ${base}/signup.html`);
-    await page.waitForTimeout(100);
+    await waitFor(() => output.texts().some((t) => /^Fields:/.test(t)));
     await assistant.handle('fill email with ada at example dot org');
     await assistant.handle('my full name is Ada Lovelace');
     expect(await page.inputValue('#email')).toBe('ada@example.org');
