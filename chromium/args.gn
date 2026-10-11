@@ -1,0 +1,21 @@
+# GN build arguments for the Frontier native build (Phase 3, gated — see README).
+# Privacy-respecting defaults; no Google API keys are compiled in.
+is_official_build = true
+is_debug = false
+symbol_level = 1
+chrome_pgo_phase = 0
+proprietary_codecs = false      # codec decision pending counsel review (COMPLIANCE.md, E8.8)
+ffmpeg_branding = "Chromium"
+enable_widevine = false         # no Widevine licence; see COMPLIANCE.md (E8.9)
+enable_nacl = false
+enable_reporting = false
+enable_remoting = false
+enable_hangout_services_extension = false
+enable_service_discovery = false
+safe_browsing_mode = 0          # replaced by Frontier's own blocklist service (E5.12)
+use_official_google_api_keys = false
+google_api_key = ""
+google_default_client_id = ""
+google_default_client_secret = ""
+enable_mse_mpeg2ts_stream_parser = false
+treat_warnings_as_errors = false

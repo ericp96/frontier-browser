@@ -471,6 +471,17 @@ export class Assistant {
         return this.listThings('images');
       case 'sent-log':
         return this.sentLog();
+      case 'privacy-notice':
+        for (const line of [
+          "Frontier doesn't collect anything about you: no tracking, no account, no analytics.",
+          'Websites are not told that you use Frontier.',
+          this.provider
+            ? `Your AI is ${this.provider.label}${this.provider.isLocal ? ', which runs on your own computer, so nothing leaves it' : '. Before sending part of a site to it, I ask you once for each site. Say "what did you send" to check, or "never send this site to the AI" to block a site'}.`
+            : 'No AI is connected, so nothing is sent anywhere except the pages you visit.',
+          'AI answers are always labelled, and they are not professional advice.',
+        ])
+          await this.say(line, 'list');
+        return;
       case 'privacy': {
         const origin = (await this.currentDigest()).origin;
         if (intent.action === 'never-ai-here') {

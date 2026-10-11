@@ -44,6 +44,7 @@ export type Intent =
   | { type: 'images' }
   | { type: 'sent-log' }
   | { type: 'privacy'; action: 'never-ai-here' | 'forget-ai-consent' }
+  | { type: 'privacy-notice' }
   | { type: 'yes' }
   | { type: 'no' };
 
@@ -170,6 +171,7 @@ export const EN_RULES: Rule[] = [
   [R('what did you send(?: to (?:the )?ai)?\\??|(?:show|read) (?:the )?(?:ai )?(?:privacy )?log'), () => ({ type: 'sent-log' })],
   [R('(?:never|don\'?t ever) (?:send|share) (?:this (?:site|page) )?(?:to|with) (?:the )?ai(?: on this site)?'), () => ({ type: 'privacy', action: 'never-ai-here' })],
   [R('(?:forget|reset) (?:ai |my )?(?:consent|permissions)(?: for this site)?'), () => ({ type: 'privacy', action: 'forget-ai-consent' })],
+  [R('privacy|privacy (?:notice|policy)|what do you do with my data|is my data (?:safe|private)\\??'), () => ({ type: 'privacy-notice' })],
   [R('submit(?: (?:the|this) form)?|send (?:the )?form'), () => ({ type: 'submit' })],
   // Forms — "fill email with x", "type x into email", "enter x in the name field", "set email to x"
   [R('(?:fill(?: in)?|fill out) (.+?) (?:with|as) (.+)'), (m) => ({ type: 'fill', target: parseTarget(m[1]!, 'field'), value: m[2]! })],

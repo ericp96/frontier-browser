@@ -3,6 +3,6 @@ dist/
 *.tsbuildinfo
 coverage/
 .env
-chromium/src/
 chromium/depot_tools/
 out/
+chromium/src-root/

@@ -1,0 +1,8 @@
+# Frontier patch series, applied in order against CHROMIUM_VERSION.
+# Each patch must be small, single-purpose, and carry a header explaining why.
+# Planned (not yet written; see docs/BACKLOG.md E1.7):
+#   frontier/0001-accessibility-on-by-default.patch    force renderer accessibility (no SR detection needed)
+#   frontier/0002-disable-google-services.patch       sync, metrics, translate, safe-browsing pings off
+#   frontier/0003-frontier-side-panel-webui.patch     host packages/core as a trusted WebUI side panel
+#   frontier/0004-assistant-mojo-service.patch        browser-process service for the assistant (Mojo)
+#   frontier/0005-strip-ua-branding.patch             no Frontier marker in the user agent

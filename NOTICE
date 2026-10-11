@@ -1,0 +1,19 @@
+Frontier Browser
+Copyright the Frontier Browser contributors.
+Licensed under the Mozilla Public License 2.0 (see LICENSE).
+
+This product includes or is built on third-party software:
+
+- Chromium (via Electron, and the optional native build): BSD-3-Clause and
+  the third-party licences listed in Chromium's about:credits.
+  https://www.chromium.org/
+- Electron: MIT License. https://www.electronjs.org/
+- Playwright (playwright-core): Apache License 2.0. https://playwright.dev/
+- Anthropic TypeScript SDK (@anthropic-ai/sdk): MIT License.
+- jsdom: MIT License (development and tests).
+- Vitest: MIT License (development and tests).
+- TypeScript: Apache License 2.0 (development).
+- axe-core: Mozilla Public License 2.0 (development and tests).
+
+"Chromium" is used descriptively. Frontier is not affiliated with or
+endorsed by Google, the Chromium project, or any AI provider.

@@ -1,0 +1,10 @@
+Frontier Browser is licensed under the Mozilla Public License, version 2.0.
+
+SPDX-License-Identifier: MPL-2.0
+
+The full license text is available at https://mozilla.org/MPL/2.0/ and must be
+added verbatim to this file before the first release (tracked in docs/BACKLOG.md E8.3).
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
