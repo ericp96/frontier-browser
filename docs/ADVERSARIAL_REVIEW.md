@@ -1,0 +1,58 @@
+# Adversarial Review — Plan v0.1
+
+An independent reviewer, who had not written the plan, attacked
+[PLAN.md](PLAN.md) and [BACKLOG.md](BACKLOG.md) from the following points
+of view:
+
+- (a) expert screen-reader users
+- (b) older users who are newly blind
+- (c) deafblind braille users
+- (d) a security researcher
+- (e) a privacy/regulatory lawyer
+- (f) a skeptical Chromium engineer
+- (g) a UX researcher
+- (h) users with low bandwidth, old hardware, or no money
+
+The reviewer was told to be blunt. The 24 findings are below, each with
+what we changed. **Disposition:**
+
+- **Adopted** means the change is in the plan, and in code where it says so.
+- **Backlog** means the change is accepted and scheduled.
+- **Partly** means part of the change is implemented and the rest is scheduled.
+
+## Findings and responses
+
+| # | Sev | Finding (condensed) | Disposition |
+|---|---|---|---|
+| AR-1 | Critical | **The output channel is spoofable.** Any page can create an ARIA live region that says "Frontier: order confirmed, say yes…", and screen readers or braille can't tell it from the browser. | **Adopted.** All browser output now comes from the shell's own document, a separate `WebContents` that pages cannot reach. Messages go into a reviewable `role="log"` and are tagged by source. Confirmations have a distinct prefix and earcon. Page-originated text is always framed as "The page says". UIA Notification / NVDA Controller support is in the backlog (E4.11). A red-team page that imitates browser prompts is in the test corpus. |
+| AR-2 | Critical | **Delimiting page text won't stop prompt injection, and you can't trace where an argument came from after it passes through an LLM.** | **Adopted.** We now separate capabilities in code: <br>• **Ask mode** (default for questions) offers the model *read-only* tools, so it cannot act. <br>• **Act mode** runs under deterministic policies enforced outside the model: no cross-origin navigation the user didn't name; text typed into a field must appear in the user's own words, otherwise it needs confirmation; every submit or consequential click goes through the gate. <br>An injection corpus runs in CI. The full dual-LLM (quarantined reader) split is E5.11. |
+| AR-3 | Critical | **Confirmations restate facts the page supplied, can be answered by the page's own audio, and people will say yes to everything out of fatigue.** | **Adopted.** Confirmation text is built by trusted code. The origin comes from the browser's committed URL as the registrable domain. Amounts are quoted as "the page shows…". High-risk actions (payment, transfer, delete, sending to a new recipient) need a random challenge word rather than "yes". The microphone is gated while speech plays. Classification also covers generic "Continue/Place order" buttons on checkout pages. |
+| AR-4 | Critical | **Electron isn't a hardened general browser:** it lags on patches, has no Safe Browsing, uses an Electron user agent, and lacks proper permission and cert prompts. | **Partly.** In code: the Electron user agent is stripped, permissions are deny-by-default with spoken prompts, cert errors are refused and announced, `beforeunload`, fullscreen and popups are blocked, and pages have no preload bridge. In the plan: a 7-day Electron security-release SLA, a Safe Browsing replacement (E5.12), a threat model (docs/THREAT_MODEL.md), and an evaluation of extension-first distribution (E1.8). |
+| AR-5 | High | **The page agent is tamperable and detectable in the main world, and detection reveals disability (special-category data).** | **Adopted.** The agent runs only in an isolated world (CDP `Page.createIsolatedWorld`, `executeJavaScriptInIsolatedWorld`). Refs live in a WeakMap and are never written to the DOM. A test checks that the page cannot see `__frontier`. |
+| AR-6 | High | **Re-implementing accname in JS means the AI and the screen reader disagree about names.** | **Adopted.** On every CDP backend, the digest is reconciled against Chromium's own accessibility tree (`Accessibility.getFullAXTree`, mapped by `backendNodeId`), and Chromium's names win. The JS accname code is only a fallback. An integration test asserts agreement. "Native AX access" is no longer a reason to fork. |
+| AR-7 | High | **The native fork is unfunded, so it would lag CVEs and put the most vulnerable users on the least secure browser.** | **Adopted.** The fork moves to P2 behind explicit go/no-go criteria (PLAN §4.1). `chromium/` keeps the patch-series scaffolding so the option stays real, but nothing ships from it until those criteria are met. Default: contribute upstream. |
+| AR-8 | High | **"Screen-reader mode" works against experts:** live regions are lossy, hotkeys collide, and the screen reader's cursor jumps. | **Adopted.** The transcript is a focusable `role="log"`, and live regions carry only short alerts. A hotkey matrix avoids NVDA/JAWS/VO/Orca keys, and every key can be remapped. The rule is one deliberate focus move per action. Expert value proposition and competitive analysis are in PLAN §1.1. SR QA moves to the Phase 0 exit. |
+| AR-9 | High | **Deafblind users get nothing until Phase 4:** braille flash messages vanish, and earcons and "say yes" assume hearing. | **Adopted.** There is a braille-first profile from P0, and all prompts are written for any modality ("announce", not "speak"). Confirmations have no timeout and accept typed answers. Everything goes to the pannable log. Onboarding can be completed by typing alone. |
+| AR-10 | High | **Walter can't install or configure this.** | **Partly.** The app speaks on first launch with zero configuration (OS TTS). A trusted helper can set it up by importing a config file (E7.8). Push-to-talk is a large, findable key (F2 hold) with an audible tutorial. Code-signing budget is in the plan, and older-voice STT accuracy is a Phase 1 gate. |
+| AR-11 | High | **No defence against tech-support and fake-shop scams aimed at blind and elderly users.** | **Adopted.** "Get me out" (voice, and a key the page can't intercept) closes the page and goes home. Pages can't block unload, and fullscreen and autoplay audio are off. Scam heuristics and lookalike-domain warnings run *before* the page is read aloud (now P0). |
+| AR-12 | High | **Redacting form fields doesn't help when the whole page is sensitive** (bank balances, diagnoses, mail). | **Adopted.** Cloud sending is denied by default for sensitive site categories, with consent asked per origin (once / always / never). For Q&A we send the minimum: the relevant chunks, not the whole digest. The audit log is capped and encrypted at rest on desktop. The provider wizard lists training and retention policies (E7.5). |
+| AR-13 | High | **Weak key storage, and local model endpoints are reachable from web pages** (DNS rebinding, CORS). | **Adopted.** Keys are kept only in the main process, never sent over IPC to renderers. We refuse to store keys when `safeStorage` falls back to `basic_text`. Page requests to localhost, private ranges and configured model endpoints are blocked. Ollama hardening guide in docs. |
+| AR-14 | High | **Web Speech recognition doesn't work in Electron, and the hardware assumptions exclude poor users.** | **Adopted.** STT is BYO OpenAI-compatible (local whisper.cpp) or typed input, with no dependency on Google. Hardware tiers and performance gates are in PLAN §6. eSpeak NG fallback and native OS dictation are in the backlog. Cost estimates for paid APIs are in the backlog (E3.10). |
+| AR-15 | Medium | **No ad/tracker blocking, cookie-wall handling, or data-saver mode.** | **Backlog.** Filter-list blocking is P0 (E6.8, not started). Consent-banner handling and data saver are P1. |
+| AR-16 | Medium | **Content-first can mislead, summaries create false confidence, and discovery can be steered by the page.** | **Adopted.** "What can I do here" is deterministic, built from the digest. Numbers, dates and amounts in AI answers are checked against the source text, and unmatched ones are announced as unverified. For apps, forms and search results we announce the title, the page kind and a hint instead of auto-reading. A comparative user study is planned before defaults are frozen. |
+| AR-17 | High | **The most painful tasks are missing:** login, 2FA, passkeys, cross-origin payment iframes, modals, media, file pickers. | **Backlog, re-prioritised.** Cross-origin iframes are now P0. Credentials, passkeys, OTP assist, modal narration (detection done), media controls and native dialogs have been added. "Log in with 2FA" is a Phase 1 exit task. |
+| AR-18 | High | **Compliance is a list of acronyms.** | **Adopted.** [COMPLIANCE.md](COMPLIANCE.md) is a per-feature obligation matrix covering GDPR Art. 9, AI Act Art. 50, BIPA, COPPA age gates, EN 301 549 clause 11 and FPS 4.2. It also records a "no telemetry until DPIA" policy and a "no speaker enrolment" policy. Counsel review is required before Phase 1. |
+| AR-19 | Medium | **Codecs, Widevine, model licences and export control are ignored.** | **Adopted** in COMPLIANCE.md as decisions and open items (E8.8–E8.11). |
+| AR-20 | Medium | **Sites block automation, and agent use may breach site terms.** | **Adopted.** Actions use trusted input events (CDP `Input.dispatchMouseEvent` / `insertText`) in the user's visible session at human pace, never as headless background scraping. A legal position memo (assistive-technology framing) is in the backlog (E8.12). |
+| AR-21 | High | **No funding, security-maintenance or end-of-life plan.** | **Adopted** in PLAN §7: a funded security owner and SLA before public release, an EOL plan, and a paid advisory panel with a veto over UX defaults, recruited before Phase 0b exits. |
+| AR-22 | Medium | **Test criteria are weak:** cohorts aren't segmented, live-site benchmarks rot, and there are no safety metrics. | **Adopted** in PLAN §6: cohort quotas, recorded-fixture benchmark, hard safety metrics, and an AT matrix run on every release. |
+| AR-23 | Medium | **Desktop-only and English-only, and no spelling of URLs or emails.** | **Partly.** Spelling and dictation normalisation ("john dot smith at gmail dot com") is done. Per-block `lang` is passed to TTS. The grammar is data-driven, ready for an es pack. Mobile scope is stated honestly in PLAN §2. |
+| AR-24 | Low | **The docs claimed a review and documents that didn't exist, and Phase 0 was over-scoped.** | **Adopted.** Status lines now describe the actual state, Phase 0 is split into 0a (docs, governance) and 0b (engine and shell), and every linked document exists. |
+
+## Top 5 changes required before Phase 0 exits
+
+1. A trusted output and confirmation channel (AR-1, AR-3). **Done in the shell and core.**
+2. Capability separation, an isolated world, and an injection corpus in CI (AR-2, AR-5). **Ask/act split, policies, isolated world and corpus are done. The quarantined-reader split is still open.**
+3. An Electron security baseline and threat model (AR-4, AR-13), with the fork demoted to P2 (AR-7). **Done, except Safe Browsing.**
+4. A digest reconciled with the AX tree, plus a log, braille profile and hotkey matrix (AR-6, AR-8, AR-9). **Done in code. Real SR/braille QA requires human testers.**
+5. Compliance matrix, default-deny for sensitive sites, and governance (AR-12, AR-18, AR-21). **Docs and code are done. Counsel review and panel recruitment are not code work.**

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Create your account - Example Shop</title></head>
+<body>
+  <main>
+    <h1>Create your account</h1>
+    <form id="signup" action="/account/create" method="post" novalidate>
+      <p><label for="email">Email address</label> <input id="email" name="email" type="email" required autocomplete="email" aria-describedby="email-hint"> <span id="email-hint">We'll send a confirmation.</span></p>
+      <p><label>Full name <input name="name" type="text" required></label></p>
+      <p><label for="pw">Password</label> <input id="pw" name="password" type="password" value="hunter2" required></p>
+      <p><label for="cc">Card number</label> <input id="cc" name="ccnum" inputmode="numeric" autocomplete="cc-number"></p>
+      <p><label for="country">Country</label>
+        <select id="country" name="country"><option>United States</option><option>Canada</option><option>Mexico</option></select></p>
+      <p><input id="news" type="checkbox" name="news" checked> <label for="news">Send me marketing offers and newsletters</label></p>
+      <p><input id="terms" type="checkbox" name="terms" required> <label for="terms">I agree to the terms</label></p>
+      <p><button type="submit">Create account</button></p>
+      <p id="status" role="status"></p>
+    </form>
+  </main>
+  <script>
+    document.getElementById('signup').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('email');
+      if (!email.value) { email.setAttribute('aria-invalid', 'true'); return; }
+      document.getElementById('status').textContent = 'Account created for ' + email.value;
+    });
+  </script>
+</body>
+</html>
