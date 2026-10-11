@@ -3,6 +3,9 @@
 Frontier exists for blind, low-vision and deafblind people, so its own
 interface has to meet a higher bar than the web it browses.
 
+> This statement describes goals and the checks run so far. It is **not a
+> claim or certification of conformance**. See [DISCLAIMER.md](../DISCLAIMER.md).
+
 **Target:** WCAG 2.2 Level AA and EN 301 549 v3.2.1 (clause 11 software, and
 the clause 4.2 functional performance statements).
 

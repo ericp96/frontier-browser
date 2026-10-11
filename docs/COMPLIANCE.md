@@ -1,8 +1,11 @@
 # Compliance and Obligations Matrix
 
-> **Status:** an engineering analysis written so that counsel can review it
-> before Phase 1. **It is not legal advice.** Each "Open" item needs a
-> decision from a qualified lawyer in the relevant jurisdiction.
+> **Status:** an informal engineering analysis. **It is not legal advice, and
+> it is not a representation or guarantee that Frontier complies with any law
+> or standard.** No lawyer has reviewed it. Each "Open" item is unresolved.
+> Frontier is an unmaintained side project provided "as is"; see
+> [DISCLAIMER.md](../DISCLAIMER.md). Anyone deploying it is responsible for
+> their own compliance.
 
 ## 1. Our role, in one paragraph
 

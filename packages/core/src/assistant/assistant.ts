@@ -35,6 +35,11 @@ export interface Settings {
   readChunk: number;
 }
 
+/** Short, spoken form of DISCLAIMER.md. Said at launch and on "disclaimer". */
+export const SPOKEN_DISCLAIMER =
+  'Frontier is an experimental, unmaintained side project with no warranty and no guarantee that it is safe, accurate, or meets any law or accessibility standard. ' +
+  'Its warnings and AI answers can be wrong. Do not rely on it alone for medical, legal, money, or emergency matters. Using it means you accept the disclaimer in the DISCLAIMER file. Say "disclaimer" to hear this again.';
+
 export const DEFAULT_SETTINGS: Settings = {
   profile: 'voice',
   verbosity: 'normal',
@@ -502,6 +507,9 @@ export class Assistant {
         return this.listThings('images');
       case 'sent-log':
         return this.sentLog();
+      case 'disclaimer':
+        await this.say(SPOKEN_DISCLAIMER, 'info');
+        return;
       case 'privacy-notice':
         for (const line of [
           "Frontier doesn't collect anything about you: no tracking, no account, no analytics.",

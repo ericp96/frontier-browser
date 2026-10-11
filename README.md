@@ -4,9 +4,18 @@
 deafblind people.** It is built on Chromium. You can back it with your own AI
 model, or use no AI at all.
 
-Being blind should not mean paying a premium to use the web. Frontier will
-never charge for an accessibility feature, never resell AI, and never track
-you.
+> [!WARNING]
+> **Experimental, unmaintained side project. No warranty, no support, no
+> guarantee of compliance with any law or accessibility standard.** It has not
+> been tested by blind users or audited, and it may not receive security
+> updates. Don't rely on it as your only way to access the web, or for
+> medical, legal, financial or emergency matters. Using it means you accept the
+> [Disclaimer and Release of Liability](DISCLAIMER.md) and the
+> [licence](LICENSE).
+
+Being blind should not mean paying a premium to use the web. Frontier is
+designed never to charge for an accessibility feature, never to resell AI,
+and never to track you.
 
 A real session with the text-mode version, using a test page from this
 repository:
@@ -54,15 +63,15 @@ repository:
 
   Small local models without tool calling work through a simple JSON
   protocol.
-- **Safe by design.**
-  - Nothing that costs money, posts, sends or deletes happens without your
+- **Safety features (best effort — they can miss things).**
+  - Actions that cost money, post, send or delete are designed to need your
     confirmation. High-risk actions need a random challenge word, not just
     "yes".
-  - Web pages can't give the assistant orders, can't imitate Frontier's
-    voice prompts, and can't tell that you use assistive technology.
-  - Lookalike sites and tech-support scams are announced *before* the page
-    is read.
-  - **"Get me out"** (or F9) always closes the page.
+  - It is designed so web pages can't give the assistant orders, imitate
+    Frontier's voice prompts, or tell that you use assistive technology.
+  - Lookalike sites and tech-support scams it recognises are announced
+    *before* the page is read. No warning doesn't mean a site is safe.
+  - **"Get me out"** (or F9) closes the page.
 - **Private.** No telemetry, no account. Pages go to a cloud AI only if you
   set one up, and only after you say yes for that site. Say "what did you
   send" to check.
@@ -74,7 +83,8 @@ repository:
 
 ## Status
 
-This is an early, working foundation. Read these before relying on it:
+This is an early, experimental foundation that is **not actively
+maintained**. See [DISCLAIMER.md](DISCLAIMER.md). For the details:
 
 - [docs/PLAN.md](docs/PLAN.md): the plan
 - [docs/ADVERSARIAL_REVIEW.md](docs/ADVERSARIAL_REVIEW.md): the
@@ -169,5 +179,7 @@ desktop app uses. They prove that:
 
 ## Licence
 
-[MPL-2.0](LICENSE). Third-party notices are in [NOTICE](NOTICE). Security
-reports: [SECURITY.md](SECURITY.md).
+[MPL-2.0](LICENSE), provided "as is" without warranty; see Sections 6 and 7
+of the licence and the [Disclaimer and Release of Liability](DISCLAIMER.md).
+Third-party notices are in [NOTICE](NOTICE). Security reports:
+[SECURITY.md](SECURITY.md).

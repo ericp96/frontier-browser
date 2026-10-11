@@ -147,7 +147,8 @@ Items tagged **[AR-n]** were added or changed by the
 |---|---|---|---|
 | E8.1 | Compliance matrix by feature [AR-18] | P0 | ✅ docs/COMPLIANCE.md |
 | E8.2 | Accessibility Conformance Report (VPAT 2.5) | P1 | ⬜ |
-| E8.3 | Third-party notices; full MPL-2.0 text in LICENSE | P0 | 🟡 NOTICE ✅; LICENSE has the SPDX header only |
+| E8.3 | Third-party notices; full MPL-2.0 text in LICENSE | P0 | ✅ |
+| E8.17 | Disclaimer and release of liability (DISCLAIMER.md), spoken at launch and on request ("disclaimer") | P0 | ✅ not reviewed by a lawyer |
 | E8.4 | Privacy and AI transparency notice, spoken on request ("privacy") | P0 | ✅ |
 | E8.5 | Accessibility statement and feedback channel | P0 | ✅ |
 | E8.6 | Paid advisory panel of blind users with a veto over UX defaults [AR-21] | P0 | ⬜ (not code work) |

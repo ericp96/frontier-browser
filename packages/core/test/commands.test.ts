@@ -43,6 +43,7 @@ describe('grammar', () => {
     ['never send this site to the AI', { type: 'privacy', action: 'never-ai-here' }],
     ['yes', { type: 'yes' }],
     ['privacy', { type: 'privacy-notice' }],
+    ['disclaimer', { type: 'disclaimer' }],
     ['is my data private?', { type: 'privacy-notice' }],
     ['Frontier, read it', { type: 'read', what: 'page' }],
     ['how much is the laptop with 16GB?', null],

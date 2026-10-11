@@ -23,6 +23,7 @@ import {
   type DeliveryResult,
   type Output,
   type FrontierConfig,
+  SPOKEN_DISCLAIMER,
 } from '@frontier/core';
 
 interface Args {
@@ -86,6 +87,7 @@ async function main(): Promise<void> {
   });
 
   process.stdout.write(`[frontier] Frontier Browser. Type a command, or "help". ${assistant.provider ? `AI: ${assistant.provider.label}.` : 'No AI model connected; all commands work offline.'} Type "quit" to exit.\n`);
+  process.stdout.write(`[frontier alert] ${SPOKEN_DISCLAIMER}\n`);
   if (args.url) await assistant.handle(`go to ${args.url}`);
 
   const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: '> ', terminal: process.stdin.isTTY });

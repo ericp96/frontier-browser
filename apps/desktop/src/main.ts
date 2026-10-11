@@ -31,6 +31,7 @@ import {
   type ProviderConfig,
   speakable,
   formatForLog,
+  SPOKEN_DISCLAIMER,
 } from '@frontier/core';
 import { hardenApp, hardenPageContents, hardenWebSession } from './hardening.js';
 import { SecretStore } from './secrets.js';
@@ -305,6 +306,8 @@ async function createWindow(): Promise<void> {
     kind: 'info',
     source: 'browser',
   });
+  // Spoken on every launch: a blind user may never open DISCLAIMER.md.
+  await output.announce({ text: SPOKEN_DISCLAIMER, kind: 'alert', source: 'browser' });
   await page.webContents.loadURL(HOME_URL);
 }
 

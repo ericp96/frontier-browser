@@ -251,6 +251,12 @@ telemetry (COMPLIANCE P-1). They come from consented testing sessions.
 
 ## 7. Governance (AR-21)
 
+> **Current reality:** this is an unpaid side project with no active
+> maintainer commitment. Everything in this section describes what a future
+> funded effort would need. None of it is a promise. See
+> [DISCLAIMER.md](../DISCLAIMER.md).
+
+
 - **Built with blind users:** a paid advisory panel of blind, low-vision
   and deafblind users, recruited before Phase 0b exits, with a **veto over
   UX defaults**. Blind contributors are actively sought as maintainers.

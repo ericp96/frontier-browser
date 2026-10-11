@@ -3,6 +3,9 @@
 This notice is spoken during onboarding. You can hear it again at any time
 by saying "privacy".
 
+This notice describes how Frontier is designed to behave. It is provided
+without warranty; see [DISCLAIMER.md](../DISCLAIMER.md).
+
 **Short version.** Frontier doesn't collect anything about you. It sends
 your pages to an AI only if you connect one, and only after you say it may,
 site by site.
