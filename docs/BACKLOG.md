@@ -26,7 +26,7 @@ Items tagged **[AR-n]** were added or changed by the
 | E1.6 | Reproducible native Chromium build in CI (large runners) [AR-7] | P2 | ⬜ |
 | E1.7 | Native fork patches (see `chromium/patches/series`) [AR-7] | P2 | ⬜ |
 | E1.8 | Evaluate extension-first distribution (side panel + `chrome.debugger`) [AR-4] | P1 | ⬜ |
-| E1.9 | Electron end-to-end tests in CI (can't run in this sandbox: the Electron binary download is blocked) | P0 | ⬜ |
+| E1.9 | Electron end-to-end tests in CI: the real app, sandbox on, non-root, driven by typed commands and a real F9 key press | P0 | ✅ 9 tests (`--project electron`) |
 | E1.10 | CLI for terminal screen readers and braille | P0 | ✅ verified manually against real Chromium |
 
 ## E2: Page understanding
@@ -67,9 +67,9 @@ Items tagged **[AR-n]** were added or changed by the
 | ID | Story | Pri | Status |
 |---|---|---|---|
 | E4.1 | TTS queue with priority and immediate barge-in | P0 | ✅ |
-| E4.2 | OS TTS (Web Speech synthesis): free and offline | P0 | 🟡 implemented in the shell; not yet run in Electron |
+| E4.2 | OS TTS (Web Speech synthesis): free and offline. Falls back to text-only, and says so, when no speech engine is installed | P0 | 🟡 runs in Electron; the no-voices fallback is tested; speaking with real voices not yet heard by a person |
 | E4.3 | BYO TTS (OpenAI-compatible `/audio/speech`) | P1 | 🟡 client ✅; not wired into the shell |
-| E4.4 | Push-to-talk STT through a BYO `/audio/transcriptions` endpoint (whisper.cpp locally) [AR-14] | P0 | 🟡 implemented; not yet run in Electron |
+| E4.4 | Push-to-talk STT through a BYO `/audio/transcriptions` endpoint (whisper.cpp locally) [AR-14] | P0 | 🟡 implemented; not yet run against a real microphone and speech server |
 | E4.5 | Typed commands are first-class | P0 | ✅ |
 | E4.6 | Screen-reader profile: we stay silent; the log is a polite live region [AR-8] | P0 | ✅ |
 | E4.7 | Earcons for confirmations, alerts and listening; browser messages only | P1 | ✅ |
@@ -91,9 +91,9 @@ Items tagged **[AR-n]** were added or changed by the
 | E5.4 | **Capability split**: ask mode has read-only tools; act mode runs under a code-enforced policy [AR-2] | P0 | ✅ |
 | E5.5 | Per-origin consent (once / always / never); local models exempt; sensitive categories flagged [AR-12] | P0 | ✅ |
 | E5.6 | "What did you send?" bounded audit log | P0 | ✅ in memory; encryption at rest ⬜ |
-| E5.7 | Keys in the OS keychain only; refuse `basic_text`; never sent to renderers [AR-13] | P0 | ✅ code; not yet run in Electron |
+| E5.7 | Keys in the OS keychain only, bound to their origin; refuse `basic_text`; never sent to renderers [AR-13] | P0 | 🟡 code; e2e confirms the page has no bridge to the shell; keychain storage not yet exercised |
 | E5.8 | Lookalike, punycode and IP-host warnings **before** the page is read; raised to P0 [AR-11] | P0 | ✅ |
-| E5.9 | Electron hardening (sandbox, permissions, cert errors, popups, unload, fullscreen, UA) [AR-4] | P0 | ✅ code; not yet run in Electron |
+| E5.9 | Electron hardening (sandbox, permissions, cert errors, popups, unload, fullscreen, UA) [AR-4] | P0 | ✅ sandbox, clean UA, no agent/Node/bridge visible to pages, permission and popup denial verified in Electron e2e; cert errors and fullscreen not yet exercised |
 | E5.10 | Dark-pattern narration | P1 | 🟡 pre-checked opt-ins and urgency timers ✅; hidden costs ⬜ |
 | E5.11 | Dual-LLM quarantine: a privileged planner sees handles only [AR-2] | P1 | ⬜ |
 | E5.12 | Safe Browsing replacement (Update API or a local blocklist) [AR-4] | P0 | ⬜ |
@@ -101,7 +101,7 @@ Items tagged **[AR-n]** were added or changed by the
 | E5.14 | Trusted output channel; page impersonation reframed [AR-1] | P0 | ✅ |
 | E5.15 | Random challenge word for high-risk actions; page audio muted during confirmations [AR-3] | P0 | ✅ challenge words; 🟡 muting not yet run in Electron |
 | E5.16 | "Get me out" (voice plus F9; the page can't intercept it) [AR-11] | P0 | ✅ |
-| E5.17 | Pages can't reach private networks or model endpoints [AR-13] | P0 | ✅ code; not yet run in Electron |
+| E5.17 | Pages can't reach private networks or model endpoints [AR-13] | P0 | 🟡 code; needs a public-origin test page to exercise end to end |
 | E5.18 | Warn when a form sends data to another site | P0 | ✅ |
 | E5.19 | Prompt-injection corpus in CI [AR-2] | P0 | ✅ first 5 attack classes; expand ⬜ |
 | E5.20 | Numbers, prices, doses and dates in AI answers checked against the source [AR-16] | P0 | ✅ |
@@ -148,6 +148,8 @@ Items tagged **[AR-n]** were added or changed by the
 | E8.1 | Compliance matrix by feature [AR-18] | P0 | ✅ docs/COMPLIANCE.md |
 | E8.2 | Accessibility Conformance Report (VPAT 2.5) | P1 | ⬜ |
 | E8.3 | Third-party notices; full MPL-2.0 text in LICENSE | P0 | ✅ |
+| E8.19 | No silent Google traffic from the desktop app (spellcheck dictionary downloads were found and disabled; full network logs show no outside requests) | P0 | ✅ verified with Chromium net logs |
+| E8.20 | Terminal version: reduce stock Chromium's own background calls to Google (flags plus blocked infrastructure hosts); document using a de-Googled Chromium | P1 | 🟡 flags applied; effect couldn't be verified in the dev sandbox |
 | E8.18 | No-distribution policy enforced in CI; packages private; read-only workflow token; packaged copies announce themselves as unofficial | P0 | ✅ |
 | E8.17 | Disclaimer and release of liability (DISCLAIMER.md), spoken at launch and on request ("disclaimer") | P0 | ✅ not reviewed by a lawyer |
 | E8.4 | Privacy and AI transparency notice, spoken on request ("privacy") | P0 | ✅ |

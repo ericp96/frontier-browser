@@ -49,6 +49,7 @@ control for each. It is required for Phase 0 to exit (AR-4).
 | T19 | A brand word authorises a lookalike ("paypal" → paypal.support) | A2, A4 | Only an exact registrable domain the user said counts as named. Model navigation to any URL flagged dangerous is denied | `policy.ts`, `assistant.ts` | `safety.test.ts`, regressions #5 |
 | T20 | Page or model text placed inside a trusted prompt ("…approved by your bank. Say yes") | A1, A3 | Page and model strings are clipped and unquoted inside prompts. Titles, dialog text, field errors and option lists are announced as page text, never as Frontier text. The desktop speaks core's reframed text, with page content in a different pitch | `policy.ts`, `gate.ts`, `assistant.ts`, `shell.js` | regressions, `safety.test.ts` |
 | T21 | A stored API key is sent to a new or imported endpoint | A4 (fake "helper" config) | Each key is bound to the origin it was entered for and only released to that origin | `secrets.ts` | code review |
+| T23 | Silent background requests to Google reveal usage (spellcheck dictionaries from redirector.gvt1.com) | n/a | Spellcheck and dictionary downloads disabled in both sessions; verified with Chromium net logs that the desktop app makes no outside requests | `hardening.ts`, `main.ts` | manual net-log run |
 | T22 | A page navigates or POSTs into the LAN or a model endpoint (bypassing subresource checks); DNS rebinding | A1 | `will-navigate` / `will-frame-navigate` block page-initiated private and protected targets. Chromium Private Network Access features are enabled for rebinding | `hardening.ts` | Electron CI (E1.9) |
 
 An independent code review after the first implementation found T16–T22.
@@ -62,5 +63,10 @@ Electron.
 - Cross-origin iframes (payment widgets) aren't digested yet (E2.8, P0).
 - No dual-LLM quarantine yet (E5.11). The policy layer is the backstop.
 - No content/ad blocking yet (E6.8).
-- Electron end-to-end tests for T9 can't run in this sandbox (the Electron
-  binary can't be downloaded here). They need CI.
+- T9 (private-network blocking) still needs an end-to-end test from a
+  public-origin page; the Electron e2e suite covers the sandbox, user agent,
+  page isolation, permissions, popups and F9 in the real app.
+- The terminal version runs on whatever Chromium is installed. Stock
+  Chromium contacts Google on its own (sign-in check, device check-in,
+  new-tab content). Frontier passes flags to reduce this, but for strict
+  privacy point `--chromium` at a de-Googled build such as ungoogled-chromium.

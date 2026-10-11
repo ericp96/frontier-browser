@@ -39,6 +39,12 @@ site by site.
 - **Your keys.** API keys are stored in your system's secure keychain and
   are never shown again.
 
+The terminal version of Frontier runs on whatever Chromium or Chrome is
+installed on your computer, and stock Chromium contacts Google on its own
+(for example to check sign-in status). Frontier switches off what it can,
+but for the strictest privacy use a de-Googled build such as
+ungoogled-chromium with `--chromium /path/to/it`.
+
 If you use a cloud AI or speech service, that company's own privacy policy
 and terms apply to what you send it. Some services don't allow users under
 13 or 18.

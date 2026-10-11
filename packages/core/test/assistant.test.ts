@@ -173,6 +173,12 @@ describe('forms and confirmation', () => {
     await backend.navigate('https://shop.example/signup');
     await assistant.handle('fill email with sam at example dot org');
     await assistant.handle('my full name is Sam Jones');
+    // Agreeing to terms is itself a confirmed action.
+    const agreeing = assistant.handle('check I agree to the terms');
+    await settle();
+    expect(output.last()).toMatchObject({ kind: 'confirm', text: expect.stringMatching(/check "I agree to the terms"/) });
+    await assistant.handle('yes');
+    await agreeing;
     const submitting = assistant.handle('submit');
     await settle();
     expect(output.last()).toMatchObject({ kind: 'confirm', text: expect.stringMatching(/confirm river/) });
@@ -195,6 +201,18 @@ describe('forms and confirmation', () => {
     await p;
     expect(backend.actions.some((a) => a.type === 'click')).toBe(false);
     expect(output.last()!.text).toMatch(/Cancelled\. Nothing was done\./);
+  });
+
+  test('required checkboxes are reported before submitting, not as errors after', async () => {
+    const { backend, output, assistant } = setup();
+    await backend.navigate('https://shop.example/signup');
+    await assistant.handle('fill email with a at b dot com');
+    await assistant.handle('my full name is Al');
+    await assistant.handle('submit');
+    expect(output.last()).toMatchObject({ kind: 'alert', text: 'Before submitting: "I agree to the terms" must be checked.' });
+    expect(backend.actions.some((a) => a.type === 'submit')).toBe(false);
+    const d = await backend.digest();
+    expect(d.controls.find((c) => /terms/.test(c.name))!.invalid).toBe(false);
   });
 
   test('required empty fields are reported before submitting', async () => {

@@ -2,6 +2,7 @@ export * from './types.js';
 export { installPageAgent, type PageAgentApi } from './page-agent/page-agent.js';
 export type { BrowserBackend } from './backend/backend.js';
 export * from './backend/cdp-backend.js';
+export * from './backend/chromium-flags.js';
 export * from './commands/grammar.js';
 export * from './commands/resolve.js';
 export * from './safety/gate.js';

@@ -171,7 +171,14 @@ don't. Two settings keep Ollama safe:
 npm run typecheck
 npx vitest run --project unit          # fast, no browser needed
 npx vitest run --project integration   # real Chromium; set CHROMIUM_PATH if needed
+npm run build && FRONTIER_E2E=1 xvfb-run -a npx vitest run --project electron
+                                       # the real desktop app; Linux, non-root, needs xvfb and xdotool
 ```
+
+The Electron tests launch the built desktop app with Chromium's sandbox on
+and use it the way a person would, by typing commands into the shell. They
+check what it says back, what the page can see, and that a real F9 key
+press gets you out even when focus is inside the page.
 
 The integration tests drive real Chromium through the same CDP code the
 desktop app uses. They prove that:
