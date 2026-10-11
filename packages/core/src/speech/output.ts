@@ -39,7 +39,7 @@ export function formatForLog(a: Announcement): string {
     case 'page':
       // Page text that claims to be the browser, the assistant or the system
       // is always reframed, so it can't pass as a browser prompt (AR-1).
-      return a.kind === 'content' && !IMPERSONATION.test(a.text) ? a.text : `The page says: ${a.text}`;
+      return (a.kind === 'content' || a.kind === 'list' || a.kind === 'info') && !IMPERSONATION.test(a.text) ? a.text : `The page says: ${a.text}`;
     case 'ai':
       return `AI: ${a.text}`;
     default:

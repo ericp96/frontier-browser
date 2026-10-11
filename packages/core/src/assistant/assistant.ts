@@ -104,7 +104,7 @@ export class Assistant {
     const offLoad = deps.backend.onPageLoaded(() => void this.pageLoaded());
     const offDialog = deps.backend.onDialog?.((dlg) => {
       const what = dlg.type === 'alert' ? 'a message' : dlg.type === 'confirm' ? 'a question, which I answered "cancel" for safety' : 'a request for input, which I dismissed';
-      void this.say(`The page showed ${what}: ${dlg.message}`, 'alert', 'page');
+      void this.say(`The page showed ${what}: "${dlg.message}"`, 'alert');
     });
     this.unsubscribe = () => {
       offLoad();
@@ -141,7 +141,8 @@ export class Assistant {
   }
 
   private async currentDigest(fresh = false): Promise<PageDigest> {
-    if (!this.digest || fresh) this.digest = await this.deps.backend.digest();
+    // Never answer from a previous page's digest.
+    if (!this.digest || fresh || this.digest.url !== this.deps.backend.currentUrl()) this.digest = await this.deps.backend.digest();
     return this.digest;
   }
 
@@ -232,16 +233,17 @@ export class Assistant {
     this.readPos = 0;
     this.lastList = [];
     this.consent.clearOnce();
+    this.digest = null;
+    const url = this.deps.backend.currentUrl();
+    if (url === 'about:blank' || url === this.settings.homeUrl) {
+      await this.say('Home. Say "go to" and a website, or "search for" something.');
+      return;
+    }
     let d: PageDigest;
     try {
       d = await this.currentDigest(true);
     } catch (e) {
       await this.say(`I couldn't read this page. ${(e as Error).message}`, 'error');
-      return;
-    }
-    const url = this.deps.backend.currentUrl();
-    if (url === 'about:blank' || url === this.settings.homeUrl) {
-      await this.say(d.title && d.title !== 'about:blank' ? d.title : 'Home. Say "go to" and a website, or "search for" something.');
       return;
     }
 
@@ -706,7 +708,7 @@ export class Assistant {
     if (r.status === 'ambiguous') {
       this.pendingChoice = { options: r.options, run };
       this.lastList = r.options;
-      await this.say(`I found ${r.options.length}: ${r.options.map((o, i) => `${i + 1}, ${o.label}`).join('. ')}. Which one?`, 'confirm', 'page');
+      await this.say(`I found ${r.options.length}: ${r.options.map((o, i) => `${i + 1}, ${o.label}`).join('. ')}. Which one?`, 'confirm');
       return;
     }
     const what = target.name ? `"${target.name}"` : `number ${target.ordinal}`;

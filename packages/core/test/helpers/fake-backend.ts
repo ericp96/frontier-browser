@@ -65,7 +65,7 @@ export class FakeBackend implements BrowserBackend {
 
   async digest(options?: DigestOptions): Promise<PageDigest> {
     if (!this.agent) this.load('about:blank');
-    return this.agent!.digest(options);
+    return { ...this.agent!.digest(options), url: this.currentUrl() };
   }
 
   async act(action: ElementAction): Promise<ActionResult> {

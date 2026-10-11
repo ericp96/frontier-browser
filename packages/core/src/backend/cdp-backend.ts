@@ -81,6 +81,9 @@ export class CdpBackend implements BrowserBackend {
     this.cdp.on('Runtime.executionContextsCleared', () => {
       this.contextId = null;
     });
+    this.cdp.on('Runtime.executionContextDestroyed', (p: { executionContextId: number }) => {
+      if (p.executionContextId === this.contextId) this.contextId = null;
+    });
     this.cdp.on('Page.javascriptDialogOpening', (p: { type: string; message: string }) => {
       // Pages can't trap the user with dialogs or block leaving (AR-11).
       // alert → accept; beforeunload → leave; confirm/prompt → dismiss and tell the user.
@@ -175,24 +178,23 @@ export class CdpBackend implements BrowserBackend {
     return this.contextId;
   }
 
-  private async evaluate<T>(expression: string, returnByValue = true, retried = false): Promise<{ value: T; objectId?: string }> {
-    const contextId = await this.ensureWorld();
+  private async evaluate<T>(expression: string, returnByValue = true, attempt = 0): Promise<{ value: T; objectId?: string }> {
+    const retry = async () => {
+      // The document changed under us (navigation in flight); rebuild the world.
+      this.contextId = null;
+      await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
+      return this.evaluate<T>(expression, returnByValue, attempt + 1);
+    };
     let r: EvalResult;
     try {
+      const contextId = await this.ensureWorld();
       r = (await this.cdp.send('Runtime.evaluate', { expression, contextId, returnByValue, awaitPromise: true })) as EvalResult;
     } catch (e) {
-      // The document changed under us; rebuild the world once.
-      if (!retried) {
-        this.contextId = null;
-        return this.evaluate(expression, returnByValue, true);
-      }
+      if (attempt < 3 && /context|frame|navigat/i.test((e as Error).message)) return retry();
       throw e;
     }
     if (r.exceptionDetails) {
-      if (!retried && /__frontier|not defined|Cannot find context/.test(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text)) {
-        this.contextId = null;
-        return this.evaluate(expression, returnByValue, true);
-      }
+      if (attempt < 3 && /__frontier|not defined|Cannot find context/.test(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text)) return retry();
       throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text);
     }
     return { value: r.result.value as T, objectId: r.result.objectId };

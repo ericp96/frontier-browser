@@ -1,0 +1,17 @@
+{
+  "name": "@frontier/cli",
+  "version": "0.1.0",
+  "description": "Frontier Browser in the terminal: text in, text out. Works with terminal screen readers and braille displays.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "bin": { "frontier": "dist/main.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@frontier/core": "0.1.0",
+    "playwright-core": "1.56.1"
+  }
+}
