@@ -1,0 +1,34 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+# Read-only: this workflow can't create releases, tags or packages.
+# The project publishes no installers (see DISCLAIMER.md).
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Distribution policy (no installers, no publishing)
+        run: node scripts/check-no-distribution.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for integration tests
+        run: npx playwright-core install --with-deps chromium
+      - run: npm run build -w @frontier/core
+      - run: npm run typecheck
+      - name: Unit tests
+        run: npx vitest run --project unit
+      - name: Integration tests (real Chromium, accessibility audit)
+        run: |
+          export CHROMIUM_PATH="$(node -e "console.log(require('playwright-core').chromium.executablePath())")"
+          npx vitest run --project integration

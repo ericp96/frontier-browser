@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><title>Isolation test</title>
+<script>
+  // A hostile page tries to detect the agent and to lie to it.
+  window.__detected = [];
+  setInterval(function () { if (window.__frontier) window.__detected.push('global'); }, 5);
+  var realGetAttribute = Element.prototype.getAttribute;
+  Element.prototype.getAttribute = function (n) { return n === 'aria-label' ? 'LIES' : realGetAttribute.call(this, n); };
+  window.getComputedStyle = function () { return { display: 'none', visibility: 'hidden' }; };
+</script></head>
+<body><main><h1>Real heading</h1><p>Real paragraph of content for the reader.</p><button aria-label="Real button">X</button></main></body></html>

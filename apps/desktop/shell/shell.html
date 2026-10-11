@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; media-src 'self' blob: mediastream:; img-src 'self' data:">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frontier Browser</title>
+  <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <a class="skip" href="#command">Skip to command box</a>
+  <header>
+    <h1>Frontier</h1>
+    <button type="button" id="settings-button" aria-haspopup="dialog">Settings</button>
+  </header>
+
+  <main>
+    <form id="command-form" autocomplete="off">
+      <label for="command">Command or question</label>
+      <div class="row">
+        <input id="command" name="command" type="text" aria-describedby="command-help" spellcheck="false" autofocus>
+        <button type="submit">Send</button>
+        <button type="button" id="talk" aria-pressed="false">Hold to talk <span class="key">F2</span></button>
+      </div>
+      <p id="command-help" class="help">Try "read", "headings", "go to bbc.co.uk", or "help". F4 stops speech. F9 gets you out of any page. F6 switches between this panel and the page.</p>
+    </form>
+
+    <h2 id="log-heading">Conversation</h2>
+    <!-- Reviewable transcript: focusable, navigable line by line, pannable on braille (AR-8, AR-9). -->
+    <div id="log" role="log" aria-labelledby="log-heading" tabindex="0"><ol id="log-list"></ol></div>
+    <!-- Urgent messages only, for screen-reader and braille profiles. -->
+    <div id="alerts" role="alert" class="visually-hidden"></div>
+  </main>
+
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form id="settings-form" method="dialog">
+      <h2 id="settings-title">Settings</h2>
+
+      <fieldset>
+        <legend>How I talk to you</legend>
+        <label><input type="radio" name="profile" value="voice"> I speak out loud (no screen reader)</label>
+        <label><input type="radio" name="profile" value="screen-reader"> My screen reader speaks for me</label>
+        <label><input type="radio" name="profile" value="braille"> Braille and text only, no sound</label>
+      </fieldset>
+
+      <label for="verbosity">Amount of detail</label>
+      <select id="verbosity" name="verbosity">
+        <option value="terse">Brief (expert)</option>
+        <option value="normal">Normal</option>
+        <option value="guided">Guided (explain more)</option>
+      </select>
+
+      <label for="autoRead">When a page opens</label>
+      <select id="autoRead" name="autoRead">
+        <option value="content">Read the content</option>
+        <option value="summary">Summarise it (needs an AI model)</option>
+        <option value="outline">Read the headings</option>
+      </select>
+
+      <fieldset>
+        <legend>AI model (optional)</legend>
+        <p class="help">Frontier works without AI. A model lets you ask questions in your own words. Local models are free and private.</p>
+        <label for="preset">Choose a service</label>
+        <select id="preset">
+          <option value="">None — no AI</option>
+        </select>
+        <p id="preset-note" class="help" aria-live="polite"></p>
+        <label for="ai-baseUrl">Address</label>
+        <input id="ai-baseUrl" type="url" spellcheck="false">
+        <label for="ai-model">Model name</label>
+        <input id="ai-model" type="text" spellcheck="false">
+        <label for="ai-key">API key (if the service needs one)</label>
+        <input id="ai-key" type="password" autocomplete="off" aria-describedby="key-note">
+        <p id="key-note" class="help"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Speech recognition (for talking to Frontier)</legend>
+        <p class="help">Any service compatible with the OpenAI transcription API, for example whisper.cpp running on this computer.</p>
+        <label for="stt-baseUrl">Address</label>
+        <input id="stt-baseUrl" type="url" spellcheck="false" placeholder="http://127.0.0.1:8080/v1">
+        <label for="stt-key">API key (if needed)</label>
+        <input id="stt-key" type="password" autocomplete="off">
+      </fieldset>
+
+      <p id="settings-status" role="status"></p>
+      <div class="row">
+        <button type="submit" value="save" id="save">Save</button>
+        <button type="submit" value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="shell.js"></script>
+</body>
+</html>
